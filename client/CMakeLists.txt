@@ -1,28 +1,20 @@
-add_executable(babel_client
+# 1. Define the executable
+add_executable(babel_client 
     src/main.cpp
 )
 
-target_include_directories(babel_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+if(TARGET portaudio_static)
+    set(PA_TARGET portaudio_static)
+elseif(TARGET PortAudio::PortAudio)
+    set(PA_TARGET PortAudio::PortAudio)
+else()
+    set(PA_TARGET portaudio)
+endif()
 
-target_link_libraries(babel_client
-    babel_protocol
-    Opus::opus
-    portaudio
-    asio::asio
+target_link_libraries(babel_client PRIVATE 
+    Opus::opus 
+    asio::asio 
+    ${PA_TARGET}
 )
 
-if (TARGET CONAN_PKG::asio)
-    target_link_libraries(babel_client CONAN_PKG::asio)
-endif()
-
-if (TARGET CONAN_PKG::portaudio)
-    target_link_libraries(babel_client CONAN_PKG::portaudio)
-endif()
-
-if (TARGET CONAN_PKG::opus)
-    target_link_libraries(babel_client CONAN_PKG::opus)
-endif()
-
-if (WIN32)
-    target_link_libraries(babel_client ws2_32)
-endif()
+target_include_directories(babel_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
