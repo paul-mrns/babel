@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+mkdir -p build
 
 # 1. Python Virtual env 
 if [ ! -d ".venv" ]; then

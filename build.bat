@@ -21,14 +21,11 @@ conan install . --output-folder=build --build=missing -s build_type=Release
 
 :: 5. CMake Configuration
 echo [LOG] Configuring CMake...
-:: We use -S . (Source is here) and -B build (Build goes there)
-:: This is the "Modern CMake" way that avoids path confusion
-cmake -S . -B build -G "Visual Studio 18 2026" ^
+cmake -S . -B build -G "Visual Studio 17 2022" ^
     -DCMAKE_TOOLCHAIN_FILE="build/build/generators/conan_toolchain.cmake"
 
 :: 6. Compilation
 echo [LOG] Compiling Binaries...
-:: Explicitly tell CMake to build the folder we just configured
 cmake --build build --config Release
 
 echo [LOG] Build process complete.
