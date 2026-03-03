@@ -40,3 +40,9 @@ jobs:
             Write-Error "Errors detected in std::cerr: $errContent"
             exit 1
         }
+
+    - name: Upload Test
+      uses: actions/upload-artifact@v4
+      with:
+        name: babel-client-windows
+        path: build/client/Release/babel_client.exe
