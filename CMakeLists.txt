@@ -3,20 +3,19 @@ project(babel LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Conan setup (guarded: present when Conan has generated it)
-if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-    include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-    conan_basic_setup(TARGETS)
-endif()
-
-if (MSVC)                                       # Windows
+if (MSVC)
     add_compile_options(/W4 /WX)
-else()                                          # Linux/macOS
+else()
     add_compile_options(-Wall -Wextra -Werror)
 endif()
 
+find_package(asio REQUIRED)
+find_package(portaudio REQUIRED) 
+find_package(opus REQUIRED)
+find_package(SQLite3 REQUIRED)
+find_package(SqliteOrm REQUIRED)
+
+add_subdirectory(protocol)
 add_subdirectory(server)
 add_subdirectory(client)
-add_subdirectory(protocol)

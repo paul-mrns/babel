@@ -1,13 +1,35 @@
 @echo off
 setlocal
 
-:: Add required Conan remotes
-conan remote add conancenter https://center.conan.io || echo Remote already exists
-conan remote add bincrafters https://bincrafters.jfrog.io/artifactory/api/conan/public-conan || echo Remote already exists
+:: 1. Setup Virtual Environment
+if not exist .venv (
+    echo [LOG] Creating Python Virtual Environment...
+    python -m venv .venv
+)
+call .venv\Scripts\activate.bat
 
-mkdir build 2>nul
-cd build
-conan install .. --build=missing
-cmake .. -G "Visual Studio 17 2022"
-cmake --build . --config Release
-echo Build done: babel_server.exe and babel_client.exe
+:: 2. Ensure Conan is installed
+echo [LOG] Installing/Updating Conan...
+python -m pip install conan --quiet
+
+:: 3. Prep Build Directory
+if not exist build mkdir build
+
+:: 4. Conan Install
+echo [LOG] Fetching Dependencies...
+conan install . --output-folder=build --build=missing -s build_type=Release
+
+:: 5. CMake Configuration
+echo [LOG] Configuring CMake...
+:: We use -S . (Source is here) and -B build (Build goes there)
+:: This is the "Modern CMake" way that avoids path confusion
+cmake -S . -B build -G "Visual Studio 18 2026" ^
+    -DCMAKE_TOOLCHAIN_FILE="build/build/generators/conan_toolchain.cmake"
+
+:: 6. Compilation
+echo [LOG] Compiling Binaries...
+:: Explicitly tell CMake to build the folder we just configured
+cmake --build build --config Release
+
+echo [LOG] Build process complete.
+pause
