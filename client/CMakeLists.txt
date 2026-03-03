@@ -1,6 +1,8 @@
-# 1. Define the executable
 add_executable(babel_client 
     src/main.cpp
+    src/AudioStream/PortAudioStream.cpp
+    include/AudioStream/IAudioStream.hpp
+    include/AudioStream/PortAudioStream.hpp
 )
 
 if(TARGET portaudio_static)
@@ -16,5 +18,13 @@ target_link_libraries(babel_client PRIVATE
     asio::asio 
     ${PA_TARGET}
 )
+
+if(UNIX)
+    target_link_libraries(babel_client PRIVATE 
+        asound   # ALSA 
+        jack     # JACK
+        pthread  # Standard threading
+    )
+endif()
 
 target_include_directories(babel_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
