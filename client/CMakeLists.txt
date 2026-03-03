@@ -6,6 +6,9 @@ target_include_directories(babel_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(babel_client
     babel_protocol
+    Opus::opus
+    portaudio
+    asio::asio
 )
 
 if (TARGET CONAN_PKG::asio)

@@ -10,11 +10,10 @@ else()
     add_compile_options(-Wall -Wextra -Werror)
 endif()
 
+# Just find the packages here so they are available to subdirectories
 find_package(asio REQUIRED)
 find_package(portaudio REQUIRED) 
-find_package(opus REQUIRED)
-find_package(SQLite3 REQUIRED)
-find_package(SqliteOrm REQUIRED)
+find_package(Opus REQUIRED)
 
 add_subdirectory(protocol)
 add_subdirectory(server)
