@@ -13,3 +13,17 @@ jobs:
 
     - name: Run Build Script
       run: .\build.bat
+    
+    - name: Run Smoke Test
+      shell: pwsh
+      run: |
+        $stderrFile = "stderr.txt"
+        Start-Process -FilePath ".\build\client\Release\babel_client.exe" -NoNewWindow -Wait -RedirectStandardError $stderrFile
+        
+        if (Test-Path $stderrFile) {
+            $errContent = Get-Content $stderrFile
+            if ($errContent) {
+                Write-Error "Errors found in std::cerr: $errContent"
+                exit 1
+            }
+        }
