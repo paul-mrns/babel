@@ -1,0 +1,21 @@
+name: Linux Build
+
+on: [push, pull_request]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Conan
+      run: pip install conan && conan profile detect
+
+    - name: Install System Deps
+      run: sudo apt-get update && sudo apt-get install -y libasound2-dev libpulse-dev
+
+    - name: Run Build Script
+      run: |
+        chmod +x build.sh
+        ./build.sh

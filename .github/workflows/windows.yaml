@@ -1,0 +1,15 @@
+name: Windows Build
+
+on: [push, pull_request]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Conan
+      run: pip install conan && conan profile detect
+
+    - name: Run Build Script
+      run: .\build.bat
