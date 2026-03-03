@@ -20,7 +20,7 @@ jobs:
         chmod +x build.sh
         ./build.sh
 
-    - name: Run Tests
+    - name: Run Exec Tests
       run: |
         ./build/client/babel_client 2> stderr.log
         
@@ -34,3 +34,9 @@ jobs:
           cat stderr.log
           exit 1
         fi
+
+    - name: Upload Test
+      uses: actions/upload-artifact@v4
+      with:
+        name: babel-client-linux
+        path: build/client/babel_client
