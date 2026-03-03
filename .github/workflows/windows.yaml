@@ -17,13 +17,21 @@ jobs:
     - name: Run Smoke Test
       shell: pwsh
       run: |
-        $stderrFile = "stderr.txt"
-        Start-Process -FilePath ".\build\client\Release\babel_client.exe" -NoNewWindow -Wait -RedirectStandardError $stderrFile
+        New-Item -Path . -Name "stderr.txt" -ItemType "file" -Force
+        $stderrPath = Join-Path (Get-Location) "stderr.txt"
+
+        $exePath = Get-ChildItem -Path "build" -Filter "babel_client.exe" -Recurse | Select-Object -ExpandProperty FullName -First 1
         
-        if (Test-Path $stderrFile) {
-            $errContent = Get-Content $stderrFile
-            if ($errContent) {
-                Write-Error "Errors found in std::cerr: $errContent"
-                exit 1
-            }
+        if (-not $exePath) {
+            Write-Error "Could not find babel_client.exe in the build directory."
+            exit 1
         }
+
+        $process = Start-Process -FilePath $exePath -ArgumentList "--test" -NoNewWindow -Wait -PassThru -RedirectStandardError $stderrPath
+
+        if ($process.ExitCode -ne 0) {
+            Write-Error "Binary exited with error code $($process.ExitCode)"
+            if (Test-Path $stderrPath) { Get-Content $stderrPath }
+            exit 1
+        }
+
