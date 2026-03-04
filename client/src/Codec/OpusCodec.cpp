@@ -43,7 +43,7 @@ std::vector<uint8_t> OpusCodec::encode(const AudioBuffer& input)
         input.samples.data(), 
         _frameSize, 
         output.data(), 
-        output.size()
+        static_cast<opus_int32>(output.size())
     );
 
     if (nbBytes < 0)
