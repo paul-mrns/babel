@@ -10,7 +10,6 @@ else()
     add_compile_options(-Wall -Wextra -Werror)
 endif()
 
-# Just find the packages here so they are available to subdirectories
 find_package(asio REQUIRED)
 find_package(portaudio REQUIRED) 
 find_package(Opus REQUIRED)

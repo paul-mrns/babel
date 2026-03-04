@@ -5,10 +5,14 @@
 ** main.cpp
 */
 
+#include "../include/AudioStream/PortAudioStream.hpp"
+#include <thread>
+#include <chrono>
+#include <cmath>
 #include <iostream>
+#include <iomanip>
 
-int main(void)
+int main()
 {
-    std::cout << "Hello world" << std::endl;
     return 0;
 }
