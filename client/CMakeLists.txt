@@ -17,11 +17,13 @@ target_link_libraries(babel_client PRIVATE
     Opus::opus 
     asio::asio 
     ${PA_TARGET}
+    asound
+    jack
 )
 
 if(UNIX)
     find_library(ALSA_LIB asound)
-    find_library(JACK_LIB jack)
+    find_library(JACK_LIB jack NAME jack REQUIRED)
 
     if(ALSA_LIB)
         target_link_libraries(babel_client PRIVATE ${ALSA_LIB})
