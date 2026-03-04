@@ -29,7 +29,7 @@ fi
 
 # 5. Run Conan Install
 echo "[build.sh] Installing dependencies (Asio, PortAudio, Opus)..."
-conan install . --output-folder=build --build=portaudio/19.7 -s build_type=Release -c tools.files.download:verify=False -o "portaudio*:with_jack=False" -o "portaudio*:with_alsa=True"
+conan install . --output-folder=build --build=missing -s build_type=Release -c tools.files.download:verify=False
 
 # 6. Dynamically locate the Toolchain file
 echo "[build.sh] Searching for conan_toolchain.cmake..."

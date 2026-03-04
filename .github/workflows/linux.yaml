@@ -13,7 +13,7 @@ jobs:
       run: pip install conan && conan profile detect
 
     - name: Install System Deps
-      run: sudo apt-get update && sudo apt-get install -y libasound2-dev libpulse-dev
+      run: sudo apt-get update && sudo apt-get install -y libasound2-dev libpulse-dev libjack-dev 
 
     - name: Run Build Script
       run: |
