@@ -20,11 +20,18 @@ target_link_libraries(babel_client PRIVATE
 )
 
 if(UNIX)
-    target_link_libraries(babel_client PRIVATE 
-        asound   # ALSA 
-        jack     # JACK
-        pthread  # Standard threading
-    )
+    find_library(ALSA_LIB asound)
+    find_library(JACK_LIB jack)
+
+    if(ALSA_LIB)
+        target_link_libraries(babel_client PRIVATE ${ALSA_LIB})
+    endif()
+
+    if(JACK_LIB)
+        target_link_libraries(babel_client PRIVATE ${JACK_LIB})
+    endif()
+
+    target_link_libraries(babel_client PRIVATE pthread)
 endif()
 
 target_include_directories(babel_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
