@@ -102,7 +102,7 @@ int PortAudioStream::paCallback(const void *input, void *output, unsigned long f
     }
 
     // OUT
-    std::unique_lock<std::mutex> lock(self->_queueMutex, std::try_to_lock);
+    std::unique_lock<std::mutex> lock(self->_queueMutex);
     if (!lock.owns_lock()) {
         std::fill(out, out + samples, 0.0f);
         return paContinue;

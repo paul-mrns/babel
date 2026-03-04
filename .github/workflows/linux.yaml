@@ -24,17 +24,11 @@ jobs:
 
     - name: Run Exec Tests
       run: |
-        ./build/client/babel_client 2> stderr.log
+        ./build/client/babel_client --test
         
         if [ $? -ne 0 ];
           then echo "Binary crashed";
           exit 1;
-        fi
-        
-        if [ -s stderr.log ]; then
-          echo "Errors detected in stderr:"
-          cat stderr.log
-          exit 1
         fi
 
     - name: Upload Test

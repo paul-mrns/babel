@@ -1,8 +1,13 @@
 add_executable(babel_client 
     src/main.cpp
     src/AudioStream/PortAudioStream.cpp
+    src/Codec/OpusCodec.cpp
     include/AudioStream/IAudioStream.hpp
+    include/AudioStream/AAudioStream.hpp
     include/AudioStream/PortAudioStream.hpp
+    include/Codec/ICodec.hpp
+    include/Codec/ACodec.hpp
+    include/Codec/OpusCodec.hpp
 )
 
 if(TARGET portaudio_static)

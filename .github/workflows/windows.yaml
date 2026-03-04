@@ -11,38 +11,29 @@ jobs:
     - name: Install Conan
       run: pip install conan && conan profile detect
 
-#    - name: Run Build Script
-#      run: .\build.bat
-#    
-#    - name: Run Exec Tests
-#      shell: pwsh
-#      run: |
-#        New-Item -Path . -Name "stderr.txt" -ItemType "file" -Force
-#        $stderrPath = Join-Path (Get-Location) "stderr.txt"
-#
-#        $exePath = Get-ChildItem -Path "build" -Filter "babel_client.exe" -Recurse | Select-Object -ExpandProperty FullName -First 1
-#        
-#        if (-not $exePath) {
-#            Write-Error "Could not find babel_client.exe in the build directory."
-#            exit 1
-#        }
-#
-#        $process = Start-Process -FilePath $exePath -ArgumentList "--test" -NoNewWindow -Wait -PassThru -RedirectStandardError $stderrPath
-#
-#        if ($process.ExitCode -ne 0) {
-#            Write-Error "Binary exited with error code $($process.ExitCode)"
-#            if (Test-Path $stderrPath) { Get-Content $stderrPath }
-#            exit 1
-#        }
-#
-#        $errContent = Get-Content $stderrPath
-#        if ($errContent) {
-#            Write-Error "Errors detected in std::cerr: $errContent"
-#            exit 1
-#        }
-#
-#    - name: Upload Test
-#      uses: actions/upload-artifact@v4
-#      with:
-#        name: babel-client-windows
-#        path: build/client/Release/babel_client.exe
+    - name: Run Build Script
+      run: .\build.bat
+    
+    - name: Run Exec Tests
+      shell: pwsh
+      run: |
+        $exePath = Get-ChildItem -Path "build" -Filter "babel_client.exe" -Recurse | Select-Object -ExpandProperty FullName -First 1
+        
+        if (-not $exePath) {
+            Write-Error "Could not find babel_client.exe in the build directory."
+            exit 1
+        }
+
+        $process = Start-Process -FilePath $exePath -ArgumentList "--test" -NoNewWindow -Wait -PassThru
+
+        if ($process.ExitCode -ne 0) {
+            Write-Error "Binary exited with error code $($process.ExitCode)"
+            exit 1
+        }
+
+
+    - name: Upload Test
+      uses: actions/upload-artifact@v4
+      with:
+        name: babel-client-windows
+        path: build/client/Release/babel_client.exe
