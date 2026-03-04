@@ -18,18 +18,17 @@ target_link_libraries(babel_client PRIVATE
     asio::asio 
     ${PA_TARGET}
     asound
-    jack
 )
 
 if(UNIX)
     find_library(ALSA_LIB asound)
-    find_library(JACK_LIB jack NAME jack REQUIRED)
+    find_library(JACK_LIB jack)
 
     if(ALSA_LIB)
         target_link_libraries(babel_client PRIVATE ${ALSA_LIB})
     endif()
 
-    if(JACK_LIB)
+    if (JACK_LIB)
         target_link_libraries(babel_client PRIVATE ${JACK_LIB})
     endif()
 
