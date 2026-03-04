@@ -7,8 +7,6 @@
 
 #include "../../include/AudioStream/PortAudioStream.hpp"
 #include <stdexcept>
-#include <a.out.h>
-#include <iostream>
 
 namespace babel {
 
@@ -47,7 +45,6 @@ PaStreamParameters PortAudioStream::setInputDevice()
 {
     PaStreamParameters params;
     params.device = Pa_GetDefaultInputDevice();
-    std::cout << "Selected input device: " << Pa_GetDeviceInfo(params.device)->name << std::endl;
     if (params.device == paNoDevice)
         throw std::runtime_error("PortAudio: No input device found");
     params.channelCount = DEFAULT_CHANNELS;
@@ -61,7 +58,6 @@ PaStreamParameters PortAudioStream::setOutputDevice()
 {
     PaStreamParameters params;
     params.device = Pa_GetDefaultOutputDevice();
-    std::cout << "Selected output device: " << Pa_GetDeviceInfo(params.device)->name << std::endl;
     if (params.device == paNoDevice)
         throw std::runtime_error("PortAudio: No Output device found");
     params.channelCount = DEFAULT_CHANNELS;
@@ -98,7 +94,6 @@ int PortAudioStream::paCallback(const void *input, void *output, unsigned long f
     const unsigned long samples = frameCount * DEFAULT_CHANNELS;
 
     if (!in || !out) {
-        std::cerr << "PortAudio: Invalid buffer\n";
         return paContinue;
     }
 
