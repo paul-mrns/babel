@@ -9,11 +9,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install Conan
-      run: pip install conan && conan profile detect
-
     - name: Install System Deps
-      run: sudo apt-get update && sudo apt-get install -y libasound2-dev libpulse-dev libjack-dev 
+      run: sudo apt-get update && sudo apt-get install cmake build-essential -y pkg-config libasound2-dev libpulse-dev libjack-dev
+
+    - name: Install Conan
+      run: |
+        pip install --break-system-packages conan
+        conan profile detect --force
 
     - name: Run Build Script
       run: |

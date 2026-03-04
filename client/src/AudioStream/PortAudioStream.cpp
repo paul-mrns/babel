@@ -67,11 +67,6 @@ PaStreamParameters PortAudioStream::setOutputDevice()
     return params;
 }
 
-void PortAudioStream::setOnReadCallback(OnRead callback)
-{
-    _onRead = callback;
-}
-
 void PortAudioStream::write(const AudioBuffer& data)
 {
     std::lock_guard<std::mutex> lock(_queueMutex);
@@ -98,12 +93,12 @@ int PortAudioStream::paCallback(const void *input, void *output, unsigned long f
     }
 
     // IN
-    if (self->_onRead) {
+    if (self->_onReadCallback) {
         AudioBuffer buf;
         buf.sampleRate = DEFAULT_SAMPLE_RATE;
         buf.channels = DEFAULT_CHANNELS;
         buf.samples.assign(in, in + samples);
-        self->_onRead(buf);
+        self->_onReadCallback(buf);
     }
 
     // OUT

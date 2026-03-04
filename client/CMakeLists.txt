@@ -13,14 +13,28 @@ else()
     set(PA_TARGET portaudio)
 endif()
 
-target_link_libraries(babel_client PRIVATE 
-    Opus::opus 
-    asio::asio 
-    ${PA_TARGET}
-)
-
-if(UNIX)
-    target_link_libraries(babel_client PRIVATE asound jack pthread)
+if(UNIX AND NOT APPLE)
+    target_link_libraries(babel_client PRIVATE 
+        Opus::opus 
+        asio::asio 
+        -Wl,--start-group 
+        ${PA_TARGET}
+        asound              # ALSA
+        jack                # JACK
+        pthread
+        m                   # Math 
+        -Wl,--end-group
+    )
+    target_link_options(babel_client PRIVATE "-Wl,--no-as-needed")
+else()
+    target_link_libraries(babel_client PRIVATE 
+        Opus::opus 
+        asio::asio 
+        ${PA_TARGET}
+    )
 endif()
 
-target_include_directories(babel_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(babel_client PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)

@@ -8,7 +8,7 @@ CMakeDeps
 CMakeToolchain
 
 [options]
-portaudio/*:with_jack=False
+portaudio/*:with_jack=True
 portaudio/*:with_alsa=True
 
 [layout]

@@ -29,6 +29,5 @@ namespace babel {
         virtual void stop() = 0;
         virtual void setOnReadCallback(OnRead callback) = 0;
         virtual void write(const AudioBuffer& data) = 0;
-
     };
 }
