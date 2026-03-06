@@ -1,13 +1,20 @@
 add_executable(babel_client 
     src/main.cpp
+    src/Client.cpp
     src/AudioStream/PortAudioStream.cpp
     src/Codec/OpusCodec.cpp
+    src/TCP/TCPAsio.cpp
+    include/Client.hpp
     include/AudioStream/IAudioStream.hpp
     include/AudioStream/AAudioStream.hpp
     include/AudioStream/PortAudioStream.hpp
     include/Codec/ICodec.hpp
     include/Codec/ACodec.hpp
     include/Codec/OpusCodec.hpp
+    include/TCP/ATCP.hpp
+    include/TCP/ITCP.hpp
+    include/TCP/TCPAsio.hpp
+    include/TCP/TCPFactory.hpp
 )
 
 if(TARGET portaudio_static)
@@ -27,7 +34,6 @@ if(UNIX AND NOT APPLE)
         asound              # ALSA
         jack                # JACK
         pthread
-        m                   # Math 
         -Wl,--end-group
     )
     target_link_options(babel_client PRIVATE "-Wl,--no-as-needed")

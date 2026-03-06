@@ -14,6 +14,5 @@ find_package(asio REQUIRED)
 find_package(portaudio REQUIRED) 
 find_package(Opus REQUIRED)
 
-add_subdirectory(protocol)
 add_subdirectory(server)
 add_subdirectory(client)
