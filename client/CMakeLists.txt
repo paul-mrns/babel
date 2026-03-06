@@ -1,6 +1,5 @@
 add_executable(babel_client 
     src/main.cpp
-    src/Client.cpp
     src/AudioStream/PortAudioStream.cpp
     src/Codec/OpusCodec.cpp
     src/TCP/TCPAsio.cpp
