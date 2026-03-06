@@ -1,18 +1,16 @@
 add_executable(babel_server
     src/main.cpp
+    src/TCP/TCPAsio.cpp
+    include/TCP/ATCP.hpp
+    include/TCP/ITCP.hpp
+    include/TCP/TCPAsio.hpp
+    include/TCP/TCPFactory.hpp
 )
 
 target_include_directories(babel_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(babel_server
-    babel_protocol
-)
+target_link_libraries(babel_server PRIVATE asio::asio)
 
-if (TARGET CONAN_PKG::asio)
-    target_link_libraries(babel_server CONAN_PKG::asio)
-endif()
-
-# Windows: link against ws2_32 for Winsock
-if (WIN32)
-    target_link_libraries(babel_server ws2_32)
+if(WIN32)
+    target_link_libraries(babel_server PRIVATE ws2_32)
 endif()
