@@ -73,4 +73,4 @@ AudioBuffer OpusCodec::decode(const std::vector<uint8_t>& input)
     return output;
 }
 
-} // namespace babel
+}

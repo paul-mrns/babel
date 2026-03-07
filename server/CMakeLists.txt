@@ -1,5 +1,6 @@
 add_executable(babel_server
     src/main.cpp
+    src/Server.cpp
     src/TCP/TCPAsio.cpp
     include/TCP/ATCP.hpp
     include/TCP/ITCP.hpp

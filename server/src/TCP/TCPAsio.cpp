@@ -149,4 +149,18 @@ void TCPAsio::sendRaw(std::shared_ptr<asio::ip::tcp::socket> socket, tcp_OpCode 
         });
 }
 
+std::string babel::TCPAsio::getClientIp(uint32_t clientId) const
+{
+    auto it = _clients.find(clientId);
+    
+    if (it != _clients.end() && it->second && it->second->is_open()) {
+        try {
+            return it->second->remote_endpoint().address().to_string();
+        } catch (const std::exception& e) {
+            return "0.0.0.0";
+        }
+    }
+    return "0.0.0.0";
+}
+
 }

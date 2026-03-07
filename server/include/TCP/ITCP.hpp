@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <functional>
 #include <vector>
+#include <string>
 #include "../../../communication/TCPProtocol.hpp"
 
 namespace babel {
@@ -30,8 +31,10 @@ class ITCPCommunication {
         virtual void onClientConnected(std::function<void(uint32_t)> callback) = 0;
         virtual void onClientDisconnected(std::function<void(uint32_t)> callback) = 0;
         virtual void onMessage(std::function<void(uint32_t, Tcp_Header, std::vector<uint8_t>)> callback) = 0;
+
+        virtual std::string getClientIp(uint32_t clientId) const = 0;
 };
 
-} // namespace babel
+}
 
 #endif

@@ -28,7 +28,8 @@ namespace babel {
             void sendTo(uint32_t clientId, tcp_OpCode op, const std::vector<uint8_t>& body) override;
             void broadcast(tcp_OpCode op, const std::vector<uint8_t>& body) override;
             void disconnectClient(uint32_t clientId) override;
-
+            std::string getClientIp(uint32_t clientId) const override;
+    
         private:
             void asyncAccept();
             void asyncReadHeader(uint32_t id, std::shared_ptr<asio::ip::tcp::socket> socket);
@@ -44,6 +45,6 @@ namespace babel {
             bool _running;
 };
 
-} // namespace babel
+}
 
 #endif

@@ -33,15 +33,29 @@ void Server::update()
 
 void Server::onClientConnected(uint32_t clientId)
 {
-    std::cout << "[Server] Client " << clientId << " connected\n";
+    std::string clientIp = _tcp->getClientIp(clientId);
+    auto newSession = std::make_shared<UserSession>(clientId, clientIp);
+    _sessions[clientId] = newSession;
+    std::cout << "[Server] Client " << clientId << " connected from " << clientIp << "\n";
 }
 
 void Server::onClientDisconnected(uint32_t clientId)
 {
     std::cout << "[Server] Client " << clientId << " disconnected\n";
-    User *user = findByClientId(clientId);
-    if (user)
-        user->online = false;
+    handleEndCall(clientId);
+    auto itQuery = std::find_if(_callQueries.begin(), _callQueries.end(), [clientId](const auto& pair) {
+        return pair.first == clientId || pair.second == clientId;
+    });
+
+    if (itQuery != _callQueries.end()) {
+        uint32_t callerId = itQuery->first;
+        uint32_t calleeId = itQuery->second;
+        uint32_t otherId = (callerId == clientId) ? calleeId : callerId;
+        _tcp->sendTo(otherId, tcp_OpCode::CALL_RESULT, {0x01}); // Not found/Disconnected
+        
+        _callQueries.erase(itQuery);
+    }
+    _sessions.erase(clientId);
 }
 
 void Server::onMessage(uint32_t clientId, Tcp_Header hdr, std::vector<uint8_t> body)
@@ -62,8 +76,11 @@ void Server::onMessage(uint32_t clientId, Tcp_Header hdr, std::vector<uint8_t> b
         case tcp_OpCode::CALL:      
             handleCall(clientId, body);     
             break;
+        case tcp_OpCode::ANSWER_CALL:
+            handleAnswerCall(clientId, body);
+            break;
         case tcp_OpCode::END_CALL:  
-            handleEndCall(clientId);        
+            handleEndCall(clientId);
             break;
         default:
             std::cerr << "[Server] Unknown opcode: 0x"
@@ -89,15 +106,20 @@ void Server::handleLogin(uint32_t clientId, const std::vector<uint8_t>& body)
     std::string username(body.begin(), sep);
     std::string password(sep + 1, body.end());
 
-    User *user = findByUsername(username);
-    if (!user || user->password != password) {
-        _tcp->sendTo(clientId, tcp_OpCode::LOGIN_RESPONSE, {0x01});
+    auto it = _sessions.find(clientId);
+    if (it == _sessions.end())
+        return;
+    auto& currentSession = it->second;
+    bool alreadyLoggedIn = std::any_of(_sessions.begin(), _sessions.end(), [&](auto& pair) {
+        return pair.second->isLoggedIn() && pair.second->getUsername() == username;
+    });
+    if (alreadyLoggedIn) {
+        _tcp->sendTo(clientId, tcp_OpCode::LOGIN_RESPONSE, {0x02});
         return;
     }
-    user->clientId = clientId;
-    user->online   = true;
+    currentSession->setCredentials(username, password);
     _tcp->sendTo(clientId, tcp_OpCode::LOGIN_RESPONSE, {0x00});
-    std::cout << "[Server] '" << username << "' logged in\n";
+    std::cout << "[Server] Session " << clientId << " identified as '" << username << "'\n";
 }
 
 void Server::handleRegister(uint32_t clientId, const std::vector<uint8_t>& body)
@@ -109,66 +131,143 @@ void Server::handleRegister(uint32_t clientId, const std::vector<uint8_t>& body)
     }
     std::string username(body.begin(), sep);
     std::string password(sep + 1, body.end());
+    auto itBusy = std::find_if(_sessions.begin(), _sessions.end(), [&](const auto& pair) {
+        return pair.second->isLoggedIn() && pair.second->getUsername() == username;
+    });
 
-    if (findByUsername(username)) {
+    if (itBusy != _sessions.end()) {
         _tcp->sendTo(clientId, tcp_OpCode::REGISTER_RESPONSE, {0x01});
         return;
     }
-    _users.push_back({clientId, username, password, false});
-    _tcp->sendTo(clientId, tcp_OpCode::REGISTER_RESPONSE, {0x00});
-    std::cout << "[Server] '" << username << "' registered\n";
+    auto it = _sessions.find(clientId);
+    if (it != _sessions.end()) {
+        it->second->setCredentials(username, password);
+        _tcp->sendTo(clientId, tcp_OpCode::REGISTER_RESPONSE, {0x00});
+        std::cout << "[Server] '" << username << "' registered and logged in session " << clientId << "\n";
+    }
 }
 
 void Server::handleGetUsers(uint32_t clientId)
 {
     std::vector<uint8_t> body;
-    for (const auto& user : _users) {
-        if (!user.online)
-            continue;
-        body.insert(body.end(), user.username.begin(), user.username.end());
-        body.push_back(0x00);
+    for (const auto& [id, session] : _sessions) {
+        if (session->isLoggedIn() && session->getId() != clientId) {
+            const std::string& name = session->getUsername();
+            
+            body.insert(body.end(), name.begin(), name.end());
+            body.push_back(0x00);
+        }
     }
     _tcp->sendTo(clientId, tcp_OpCode::USERS_LIST, body);
+    std::cout << "[Server] Sent online user list to session " << clientId << "\n";
 }
 
 void Server::handleCall(uint32_t clientId, const std::vector<uint8_t>& body)
 {
-    std::string target(body.begin(), body.end());
-    User *caller = findByClientId(clientId);
-    User *callee = findByUsername(target);
-
-    if (!callee || !callee->online) {
-        _tcp->sendTo(clientId, tcp_OpCode::CALL_RESPONSE, {0x01}); // not found
+    std::string targetName(body.begin(), body.end());
+    auto callerSession = _sessions[clientId];
+    auto calleeSession = findSessionByUsername(targetName);
+    if (callerSession && calleeSession && callerSession->getId() == calleeSession->getId()) {
+        _tcp->sendTo(clientId, tcp_OpCode::CALL_RESULT, {0x04}); // Calling yourself
+        return;
+    }
+    if (!calleeSession || !calleeSession->isLoggedIn()) {
+        _tcp->sendTo(clientId, tcp_OpCode::CALL_RESULT, {0x01}); // Not found / Offline
+        return;
+    }
+    bool isBusy = calleeSession->isInCall();
+    if (isBusy) {
+        _tcp->sendTo(clientId, tcp_OpCode::CALL_RESULT, {0x02}); // User busy
         return;
     }
     std::vector<uint8_t> callBody;
-    if (caller)
-        callBody.assign(caller->username.begin(), caller->username.end());
+    if (callerSession) {
+        std::string callerName = callerSession->getUsername();
+        callBody.assign(callerName.begin(), callerName.end());
+    }
+    _callQueries[clientId] = calleeSession->getId();
+    _tcp->sendTo(calleeSession->getId(), tcp_OpCode::INCOMING_CALL, callBody);
+    std::cout << "[Server] " << callerSession->getUsername() << " is calling " << targetName << "\n";
+}
 
-    _tcp->sendTo(callee->clientId, tcp_OpCode::CALL, callBody);
-    _tcp->sendTo(clientId, tcp_OpCode::CALL_RESPONSE, {0x00});
-    std::cout << "[Server] Call from '" << (caller ? caller->username : "?")
-              << "' to '" << target << "'\n";
+void Server::handleAnswerCall(uint32_t calleeId, const std::vector<uint8_t>& body)
+{
+    uint32_t callerId = 0;
+    for (auto const& [caller, callee] : _callQueries) {
+        if (callee == calleeId) {
+            callerId = caller;
+            break;
+        }
+    }
+    if (callerId == 0)
+        return;
+    auto callerSession = _sessions[callerId];
+    auto calleeSession = _sessions[calleeId];
+    if (!callerSession || !calleeSession) {
+        _callQueries.erase(callerId);
+        return;
+    }
+    if (!body.empty() && body[0] == 0x00) {
+        std::string callerIp = callerSession->getIp();
+        std::string calleeIp = calleeSession->getIp();
+        uint16_t callerUdpPort = 50002; 
+        uint16_t calleeUdpPort = (body.size() >= 3) ? (body[1] << 8 | body[2]) : 50002;
+
+        callerSession->setInCall(true);
+        calleeSession->setInCall(true);
+        _activeCalls[callerId] = calleeId;
+        std::vector<uint8_t> resToCaller = {0x00};
+        resToCaller.push_back((calleeUdpPort >> 8) & 0xFF);
+        resToCaller.push_back(calleeUdpPort & 0xFF);
+        resToCaller.insert(resToCaller.end(), calleeIp.begin(), calleeIp.end());
+        _tcp->sendTo(callerId, tcp_OpCode::CALL_RESULT, resToCaller);
+
+        _activeCalls[calleeId] = callerId;
+        std::vector<uint8_t> resToCallee = {0x00};
+        resToCallee.push_back((callerUdpPort >> 8) & 0xFF);
+        resToCallee.push_back(callerUdpPort & 0xFF);
+        resToCallee.insert(resToCallee.end(), callerIp.begin(), callerIp.end());
+        _tcp->sendTo(calleeId, tcp_OpCode::CALL_RESULT, resToCallee);
+        
+        std::cout << "[Server] Call Active: " << callerSession->getUsername() 
+                  << " (" << callerIp << ") <-> " << calleeSession->getUsername() 
+                  << " (" << calleeIp << ")\n";
+    } 
+    else {
+        std::cout << "[Server] " << calleeSession->getUsername() << " has declined the call from " << callerSession->getUsername() << "." << std::endl;
+        _tcp->sendTo(callerId, tcp_OpCode::CALL_RESULT, {0x03});
+        _tcp->sendTo(calleeId, tcp_OpCode::CALL_RESULT, {0x03});
+    }
+    _callQueries.erase(callerId);
 }
 
 void Server::handleEndCall(uint32_t clientId)
 {
-    std::cout << "[Server] Client " << clientId << " ended call\n";
+    auto it = _activeCalls.find(clientId);
+    if (it == _activeCalls.end()) {
+        _callQueries.erase(clientId);
+        return;
+    }
+    uint32_t peerId = it->second;
+    auto session = _sessions[clientId];
+    auto peerSession = _sessions[peerId];
+    if (session) session->setInCall(false);
+    if (peerSession) {
+        peerSession->setInCall(false);
+        _tcp->sendTo(peerId, tcp_OpCode::END_CALL, {});
+    }
+    _activeCalls.erase(clientId);
+    _activeCalls.erase(peerId);
+    std::cout << "[Server] Call between " << clientId << " and " << peerId << " terminated.\n";
 }
 
-User* Server::findByClientId(uint32_t clientId)
+std::shared_ptr<UserSession> Server::findSessionByUsername(const std::string& username)
 {
-    for (auto& user : _users)
-        if (user.clientId == clientId)
-            return &user;
-    return nullptr;
-}
-
-User* Server::findByUsername(const std::string& username)
-{
-    for (auto& user : _users)
-        if (user.username == username)
-            return &user;
+    for (auto const& [id, session] : _sessions) {
+        if (session->isLoggedIn() && session->getUsername() == username) {
+            return session;
+        }
+    }
     return nullptr;
 }
 

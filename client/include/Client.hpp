@@ -22,6 +22,7 @@ namespace babel {
         DISCONNECTED,
         NOT_LOGGED_IN,
         IDLE,
+        INCOMING_CALL,
         IN_CALL
     };
 
@@ -30,7 +31,7 @@ namespace babel {
             Client(TCPSystem netType);
             ~Client() = default;
 
-            void update();
+            void run();
 
             ClientState getState() const { return _state; }
             bool _isRunning() const { return _running; }
@@ -38,6 +39,7 @@ namespace babel {
         private:
             void initCommandDispatch();
             void handleCommand(const std::string& command);
+            void handlePacket(Tcp_Header hdr, std::vector<uint8_t> body);
         
             //commands
             void connectCmd(std::vector<std::string> args);
@@ -46,10 +48,15 @@ namespace babel {
             void helpCmd(std::vector<std::string> args);
             void listCmd(std::vector<std::string> args);
             void callCmd(std::vector<std::string> args);
+            void endCallCmd(std::vector<std::string> args);
             void exitCmd(std::vector<std::string> args);
+            void answerCallCmd(std::string answer);
 
-            void handlePacket(Tcp_Header hdr, std::vector<uint8_t> body);
+            void connectToCall(const std::vector<uint8_t>& body);
 
+            void networkLoop();
+
+            std::thread _networkThread;
             std::vector<std::pair<std::string, std::function<void(const std::vector<std::string>&)>>> _dispatchTable;
             std::unique_ptr<ITCPCommunication> _tcp;
             ClientState _state;

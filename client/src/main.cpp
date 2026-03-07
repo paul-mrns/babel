@@ -6,11 +6,7 @@
 */
 
 #include "../include/Client.hpp"
-#include <thread>
-#include <chrono>
-#include <cmath>
 #include <iostream>
-#include <iomanip>
 
 int main(int argc, char* argv[])
 {
@@ -21,8 +17,7 @@ int main(int argc, char* argv[])
     try {
         babel::Client client(babel::TCPSystem::ASIO);
         while (client._isRunning()) {
-            client.update();
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            client.run();
         }
         return 0;
     } catch (const std::exception& ex) {
