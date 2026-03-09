@@ -15,9 +15,12 @@ bool TCPAsio::connectToServer(const std::string& ip, int port)
         asio::ip::tcp::resolver resolver(_io);
         auto endpoints = resolver.resolve(ip, std::to_string(port));
         asio::connect(_socket, endpoints);
+        _localIP = _socket.local_endpoint().address().to_string();
+        _localPort = _socket.local_endpoint().port();
         _isConnected = true;
         asyncReadHeader();
         std::cout << "[Asio] Connected to " << ip << ":" << port << "\n";
+        std::cout << "[Asio] My address is " << _localIP  << ":" << _localPort << std::endl;
         return true;
     } catch (const std::exception& e) {
         std::cerr << "[Asio] Connection failed: " << e.what() << "\n";

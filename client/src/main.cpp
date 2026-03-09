@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
         return 0;
     }
     try {
-        babel::Client client(babel::TCPSystem::ASIO);
+        babel::Client client(babel::TCPSystem::ASIO, babel::UDPSystem::ASIO);
         while (client._isRunning()) {
             client.run();
         }

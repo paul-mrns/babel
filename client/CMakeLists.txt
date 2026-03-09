@@ -2,13 +2,14 @@ add_executable(babel_client
     src/main.cpp
     src/Client.cpp
     src/ClientCommands.cpp
-    src/AudioStream/PortAudioStream.cpp
+    src/AudioStream/AudioPortStream.cpp
     src/Codec/OpusCodec.cpp
     src/TCP/TCPAsio.cpp
+    src/UDP/AsioUDP.cpp
     include/Client.hpp
     include/AudioStream/IAudioStream.hpp
     include/AudioStream/AAudioStream.hpp
-    include/AudioStream/PortAudioStream.hpp
+    include/AudioStream/AudioPortStream.hpp
     include/Codec/ICodec.hpp
     include/Codec/ACodec.hpp
     include/Codec/OpusCodec.hpp
@@ -16,6 +17,9 @@ add_executable(babel_client
     include/TCP/ITCP.hpp
     include/TCP/TCPAsio.hpp
     include/TCP/TCPFactory.hpp
+    include/UDP/AsioUDP.hpp
+    include/UDP/AUDP.hpp
+    include/UDP/IUDP.hpp
 )
 
 if(TARGET portaudio_static)

@@ -11,8 +11,8 @@
 
 namespace babel {
 
-Client::Client(TCPSystem netType)
-    : _netType(netType)
+Client::Client(TCPSystem tcpSys, UDPSystem udpSys)
+    : _tcpSystem(tcpSys), _udpSystem(udpSys)
 {
     _running = true;
     _state = ClientState::DISCONNECTED;
@@ -101,7 +101,7 @@ void Client::handlePacket(Tcp_Header header, std::vector<uint8_t> body)
         case tcp_OpCode::CALL_RESULT:
             if (!body.empty()) {
                 if (body[0] == 0x00) {
-                    connectToCall(body);
+                    createCallSocket();
                 } else if (body[0] == 0x01) {
                     std::cout << "Call failed: user not found.\n";
                 } else if (body[0] == 0x02) {
@@ -125,30 +125,54 @@ void Client::handlePacket(Tcp_Header header, std::vector<uint8_t> body)
             std::cout << "Call ended.\n";
             break;
 
+        case tcp_OpCode::START_CALL:
+            startCall(body);
+            break;
+
         default:
-            std::cerr << "Unknown opcode: 0x"
-                      << std::hex << static_cast<int>(header.op_code) << std::dec << std::endl;
+            std::cerr << "Unknown opcode: 0x" << std::hex << static_cast<int>(header.op_code) << std::dec << std::endl;
             break;
     }
 }
 
-void Client::connectToCall(const std::vector<uint8_t>& body)
+void Client::createCallSocket()
 {
     _state = ClientState::IN_CALL;
     std::cout << "Call accepted.\n";
-
-    if (body.size() < 4) {
-        std::cerr << "[Client] CALL_RESULT packet is invalid.\n";
+    _udp = UDPFactory::create(_udpSystem);
+    uint16_t chosenPort = _udp->bind();
+    std::string localIp = _tcp->getIP();
+    if (chosenPort == 0) {
+        std::cerr << "[Client] Critical Error: Could not bind local UDP port.\n";
         return;
     }
-    uint16_t remotePort = (body[1] << 8) | body[2];
-    std::string remoteIp(body.begin() + 3, body.end());
-    std::cout << "------------------------------------------\n";
-    std::cout << ">>> TARGET ACQUIRED <<<\n";
-    std::cout << "Connecting UDP stream to: " << remoteIp << ":" << remotePort << "\n";
-    std::cout << "------------------------------------------\n";
+    std::vector<uint8_t> packetBody;
+    packetBody.push_back((chosenPort >> 8) & 0xFF);
+    packetBody.push_back(chosenPort & 0xFF);
+    packetBody.insert(packetBody.end(), localIp.begin(), localIp.end());
+    _tcp->sendPacket(tcp_OpCode::START_CALL, packetBody);
+}
 
-    //open UDP port
+void Client::startCall(std::vector<uint8_t> body)
+{
+    if (body.size() < 3) {
+        std::cerr << "[Client] Error: Received invalid UDP packet." << std::endl;
+        return;
+    }
+    uint16_t peerPort = (body[0] << 8) | body[1];
+    std::string peerIp(body.begin() + 2, body.end());
+
+    if (peerPort == 0 || peerIp.empty()) {
+        std::cerr << "[Client] Error: Invalid Address -> " << peerIp << ":" << peerPort << std::endl;
+        return;
+    }
+    std::cout << "Connecting to " << peerIp << ":" << peerPort << std::endl;
+    if (_udp) {
+        _udp->connect(peerIp, peerPort);
+    } else {
+        std::cerr << "[Client] Error: UDP system not initialized." << std::endl;
+        return;
+    }
 }
 
 }

@@ -5,7 +5,9 @@
 ** ICodec.hpp
 */
 
-#pragma once
+#ifndef ICODEC_HPP_
+#define ICODEC_HPP_
+
 #include <vector>
 #include <cstdint>
 #include "AudioStream/IAudioStream.hpp"
@@ -19,3 +21,5 @@ namespace babel {
             virtual AudioBuffer decode(const std::vector<uint8_t>& input) = 0;
     };
 }
+
+#endif

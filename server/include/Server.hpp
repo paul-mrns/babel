@@ -37,7 +37,7 @@ namespace babel {
             void handleCall(uint32_t clientId, const std::vector<uint8_t>& body);
             void handleAnswerCall(uint32_t clientId, const std::vector<uint8_t>& body);
             void handleEndCall(uint32_t clientId);
-
+            void handleStartCall(uint32_t clientId, const std::vector<uint8_t>& body);
 
             std::shared_ptr<UserSession> findSessionByUsername(const std::string& username);
 

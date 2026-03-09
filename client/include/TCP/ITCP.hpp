@@ -15,7 +15,7 @@
 
 namespace babel {
 
-    enum TCPSystem {
+    enum class TCPSystem {
         ASIO
     };
 
@@ -28,6 +28,8 @@ namespace babel {
             virtual bool isConnected() const = 0;
             virtual void disconnect() = 0;
             virtual void onMessage(std::function<void(Tcp_Header, std::vector<uint8_t>)> callback) = 0;
+            virtual std::string getIP() const = 0;
+            virtual uint16_t getPort() const = 0;
     };
 }
 

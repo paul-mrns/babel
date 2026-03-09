@@ -2,15 +2,15 @@
 ** EPITECH PROJECT, 2026
 ** Untitled (Workspace)
 ** File description:
-** PortAudioStream.cpp
+** AudioPortStream.cpp
 */
 
-#include "../../include/AudioStream/PortAudioStream.hpp"
+#include "../../include/AudioStream/AudioPortStream.hpp"
 #include <stdexcept>
 
 namespace babel {
 
-PortAudioStream::PortAudioStream()
+AudioPortStream::AudioPortStream()
     : _stream(nullptr)
 {
     if (Pa_Initialize() != paNoError)
@@ -22,7 +22,7 @@ PortAudioStream::PortAudioStream()
         throw std::runtime_error("PortAudio: Failed to open stream");
 }
 
-PortAudioStream::~PortAudioStream()
+AudioPortStream::~AudioPortStream()
 {
     if (_stream) {
         Pa_StopStream(_stream);
@@ -31,17 +31,17 @@ PortAudioStream::~PortAudioStream()
     Pa_Terminate();
 }
 
-void PortAudioStream::start()
+void AudioPortStream::start()
 {
     Pa_StartStream(_stream);
 }
 
-void PortAudioStream::stop()
+void AudioPortStream::stop()
 {
     Pa_StopStream(_stream);
 }
 
-PaStreamParameters PortAudioStream::setInputDevice()
+PaStreamParameters AudioPortStream::setInputDevice()
 {
     PaStreamParameters params;
     params.device = Pa_GetDefaultInputDevice();
@@ -54,7 +54,7 @@ PaStreamParameters PortAudioStream::setInputDevice()
     return params;
 }
 
-PaStreamParameters PortAudioStream::setOutputDevice()
+PaStreamParameters AudioPortStream::setOutputDevice()
 {
     PaStreamParameters params;
     params.device = Pa_GetDefaultOutputDevice();
@@ -67,7 +67,7 @@ PaStreamParameters PortAudioStream::setOutputDevice()
     return params;
 }
 
-void PortAudioStream::write(const AudioBuffer& data)
+void AudioPortStream::write(const AudioBuffer& data)
 {
     std::lock_guard<std::mutex> lock(_queueMutex);
 
@@ -81,9 +81,9 @@ void PortAudioStream::write(const AudioBuffer& data)
     }
 }
 
-int PortAudioStream::paCallback(const void *input, void *output, unsigned long frameCount, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void *userData)
+int AudioPortStream::paCallback(const void *input, void *output, unsigned long frameCount, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void *userData)
 {
-    auto *self = static_cast<PortAudioStream*>(userData);
+    auto *self = static_cast<AudioPortStream*>(userData);
     const float *in  = static_cast<const float*>(input);
     float *out = static_cast<float*>(output);
     const unsigned long samples = frameCount * DEFAULT_CHANNELS;

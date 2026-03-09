@@ -28,8 +28,9 @@ namespace babel {
         CALL = 0x08,                // userX
         INCOMING_CALL = 0x09,       // empty
         ANSWER_CALL = 0x0a,         // 0 = accept, 1 = decline
-        CALL_RESULT = 0x0b,         // 0 = call is ready (ip + port), 1 = user not found, 2 = user is in a call already, 3 = user declined, 4 = user calling himself
-        END_CALL = 0x0c             // empty
+        CALL_RESULT = 0x0b,         // 0 = call has been accepted, 1 = user not found, 2 = user is in a call already, 3 = user declined, 4 = user calling himself
+        START_CALL = 0x0C,          // port & ip
+        END_CALL = 0x0d             // empty
     };
 
     struct Tcp_Header {

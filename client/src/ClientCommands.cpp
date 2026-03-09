@@ -63,7 +63,7 @@ void Client::connectCmd(std::vector<std::string> args)
     }
 
     try {
-        _tcp = TCPFactory::create(_netType);
+        _tcp = TCPFactory::create(_tcpSystem);
         _tcp->connectToServer(args[0], std::stoi(args[1]));
         _tcp->onMessage([this](Tcp_Header header, std::vector<uint8_t> body) {
             handlePacket(header, body);

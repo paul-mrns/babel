@@ -5,7 +5,8 @@
 ** TCPFactory.hpp
 */
 
-#pragma once
+#ifndef TCPFACTORY_HPP_
+#define TCPFACTORY_HPP_
 
 #include "TCPAsio.hpp"
 #include <memory>
@@ -25,3 +26,5 @@ namespace babel {
             }
     };
 }
+
+#endif

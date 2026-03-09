@@ -82,6 +82,9 @@ void Server::onMessage(uint32_t clientId, Tcp_Header hdr, std::vector<uint8_t> b
         case tcp_OpCode::END_CALL:  
             handleEndCall(clientId);
             break;
+        case tcp_OpCode::START_CALL:
+            handleStartCall(clientId, body);
+            break;
         default:
             std::cerr << "[Server] Unknown opcode: 0x"
                       << std::hex << static_cast<int>(hdr.op_code)
@@ -211,7 +214,7 @@ void Server::handleAnswerCall(uint32_t calleeId, const std::vector<uint8_t>& bod
         std::string callerIp = callerSession->getIp();
         std::string calleeIp = calleeSession->getIp();
         uint16_t callerUdpPort = 50002; 
-        uint16_t calleeUdpPort = (body.size() >= 3) ? (body[1] << 8 | body[2]) : 50002;
+        uint16_t calleeUdpPort = (body.size() >= 3) ? (body[1] << 8 | body[2]) : 50003;
 
         callerSession->setInCall(true);
         calleeSession->setInCall(true);
@@ -259,6 +262,22 @@ void Server::handleEndCall(uint32_t clientId)
     _activeCalls.erase(clientId);
     _activeCalls.erase(peerId);
     std::cout << "[Server] Call between " << clientId << " and " << peerId << " terminated.\n";
+}
+
+void Server::handleStartCall(uint32_t clientId, const std::vector<uint8_t>& body)
+{
+    if (body.size() < 3) {
+        std::cerr << "[Server] Invalid CALL_START packet size from " << clientId << std::endl;
+        return;
+    }
+    auto it = _activeCalls.find(clientId);
+    if (it == _activeCalls.end()) {
+        std::cerr << "[Server] Client " << clientId << " sent CALL_START but is not in a call." << std::endl;
+        return;
+    }
+    uint32_t peerId = it->second;
+    _tcp->sendTo(peerId, tcp_OpCode::START_CALL, body);
+    std::cout << "[Server] Relayed UDP config from Client " << clientId << " to Peer " << peerId << std::endl;
 }
 
 std::shared_ptr<UserSession> Server::findSessionByUsername(const std::string& username)

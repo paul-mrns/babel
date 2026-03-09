@@ -8,9 +8,10 @@
 #ifndef CLIENT_HPP_
 #define CLIENT_HPP_
 
-#include "AudioStream/PortAudioStream.hpp"
+#include "AudioStream/AudioPortStream.hpp"
 #include "Codec/OpusCodec.hpp"
 #include "TCP/TCPFactory.hpp"
+#include "UDP/UDPFactory.hpp"
 #include <string>
 #include <memory>
 #include <vector>
@@ -28,7 +29,7 @@ namespace babel {
 
     class Client {
         public:
-            Client(TCPSystem netType);
+            Client(TCPSystem tcpSys, UDPSystem udpSys);
             ~Client() = default;
 
             void run();
@@ -52,16 +53,22 @@ namespace babel {
             void exitCmd(std::vector<std::string> args);
             void answerCallCmd(std::string answer);
 
-            void connectToCall(const std::vector<uint8_t>& body);
+            void createCallSocket();
+            void startCall(std::vector<uint8_t> body);
 
             void networkLoop();
 
             std::thread _networkThread;
             std::vector<std::pair<std::string, std::function<void(const std::vector<std::string>&)>>> _dispatchTable;
+
+            TCPSystem _tcpSystem;
             std::unique_ptr<ITCPCommunication> _tcp;
+
+            UDPSystem _udpSystem;
+            std::unique_ptr<IUDPCommunication> _udp;
+
             ClientState _state;
             std::string _myUsername;
-            TCPSystem _netType;
             bool _running;
     };
 }

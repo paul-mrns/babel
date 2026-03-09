@@ -8,8 +8,6 @@
 #ifndef TCP_ASIO_HPP_
 #define TCP_ASIO_HPP_
 
-#pragma once
-
 #include <asio.hpp>
 #include "ATCP.hpp"
 #include <iostream>
@@ -31,10 +29,10 @@ namespace babel {
             void asyncReadBody();
             void handleMsg();
 
-            asio::io_context        _io;
-            asio::ip::tcp::socket   _socket;
-            Tcp_Header              _incomingHeader{};
-            std::vector<uint8_t>    _incomingBody;
+            asio::io_context _io;
+            asio::ip::tcp::socket _socket;
+            Tcp_Header _incomingHeader{};
+            std::vector<uint8_t> _incomingBody;
 };
 
 }

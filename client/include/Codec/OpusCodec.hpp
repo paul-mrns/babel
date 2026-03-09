@@ -5,12 +5,14 @@
 ** OpusCodec.hpp
 */
 
+#ifndef OPUSCODEC_HPP_
+#define OPUSCODEC_HPP_
+
 #include "ACodec.hpp"
 
 extern "C" {
     #include <opus/opus.h>
 }
-
 
 namespace babel {
 
@@ -33,3 +35,5 @@ namespace babel {
 
     };
 }
+
+#endif

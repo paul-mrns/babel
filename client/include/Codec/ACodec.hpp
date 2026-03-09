@@ -5,6 +5,9 @@
 ** ACodec.hpp
 */
 
+#ifndef ACODEC_HPP_
+#define ACODEC_HPP_
+
 #include "ICodec.hpp"
 
 namespace babel {
@@ -22,3 +25,5 @@ namespace babel {
             int getSampleRate() const { return _sampleRate; }
         };
 }
+
+#endif
