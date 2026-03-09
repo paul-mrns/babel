@@ -54,3 +54,7 @@ target_include_directories(babel_client PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+
+if (WIN32)
+    add_definitions(-D_WIN32_WINNT=0x0A00)
+endif()

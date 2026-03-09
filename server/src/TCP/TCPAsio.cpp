@@ -156,7 +156,7 @@ std::string babel::TCPAsio::getClientIp(uint32_t clientId) const
     if (it != _clients.end() && it->second && it->second->is_open()) {
         try {
             return it->second->remote_endpoint().address().to_string();
-        } catch (const std::exception& e) {
+        } catch (const std::exception&) {
             return "0.0.0.0";
         }
     }

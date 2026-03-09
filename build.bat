@@ -12,19 +12,26 @@ call .venv\Scripts\activate.bat
 echo [LOG] Installing/Updating Conan...
 python -m pip install conan --quiet
 
-:: 3. Prep Build Directory
+:: 3. Built-in Conan Detection/Creation
+echo [LOG] Detecting System Profile...
+if exist %USERPROFILE%\.conan2\profiles\default (
+    del /f %USERPROFILE%\.conan2\profiles\default
+)
+conan profile detect --force
+
+:: 4. Prep Build Directory
 if not exist build mkdir build
 
-:: 4. Conan Install
+:: 5. Conan Install (Fixes "Dependencies Failing")
 echo [LOG] Fetching Dependencies...
-conan install . --output-folder=build --build=missing -s build_type=Release
+conan install . --output-folder=build --build=missing -pr:b=default -pr:h=default -s build_type=Release
 
-:: 5. CMake Configuration
-echo [LOG] Configuring CMake...
-cmake -S . -B build -G "Visual Studio 17 2022" ^
+:: 6. CMake Configuration
+echo [LOG] Configuring CMake for VS 2026...
+cmake -S . -B build -G "Visual Studio 18 2026" ^
     -DCMAKE_TOOLCHAIN_FILE="build/build/generators/conan_toolchain.cmake"
 
-:: 6. Compilation
+:: 7. Compilation
 echo [LOG] Compiling Binaries...
 cmake --build build --config Release
 
