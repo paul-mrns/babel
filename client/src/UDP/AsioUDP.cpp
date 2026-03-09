@@ -20,7 +20,7 @@ uint16_t AsioUDP::bind()
         _localPort = _socket.local_endpoint().port();
         return _localPort;
     } catch (const std::exception& e) {
-        std::cerr << "[UDP Bind Error] " << e.what() << std::endl;
+        std::cerr << "[Asio UDP] Bind() Error: " << e.what() << std::endl;
         return 0;
     }
 }
@@ -38,12 +38,12 @@ void AsioUDP::connect(const std::string& remoteIp, uint16_t remotePort)
                 auto work_guard = asio::make_work_guard(_io);
                 _io.run();
             } catch (const std::exception& e) {
-                std::cerr << "[UDP Thread Error] " << e.what() << std::endl;
+                std::cerr << "[Asio UDP] Thread error: " << e.what() << std::endl;
             }
         });
-        std::cout << "[UDP] Streaming to " << remoteIp << ":" << remotePort << " from local port " << _localPort << std::endl;
+        std::cout << "[Asio UDP] Streaming to " << remoteIp << ":" << remotePort << " from local port " << _localPort << std::endl;
     } catch (const std::exception& e) {
-        std::cerr << "[UDP Start Error] " << e.what() << std::endl;
+        std::cerr << "[Asio UDP] Error: " << e.what() << std::endl;
     }
 }
 
@@ -55,9 +55,12 @@ void AsioUDP::stop()
     _io.stop();
     if (_worker.joinable())
         _worker.join();
+    std::error_code ec;
+    _socket.shutdown(asio::ip::udp::socket::shutdown_both, ec);
     if (_socket.is_open())
-        _socket.close();
+        _socket.close(ec);
     _io.reset();
+    std::cout << "[Asio UDP] Disconnected\n";
 }
 
 void AsioUDP::sendAudio(const std::vector<unsigned char>& data)

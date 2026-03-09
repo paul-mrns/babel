@@ -20,7 +20,7 @@ void TCPAsio::listen(int port)
     _acceptor.listen();
     _running = true;
     asyncAccept();
-    std::cout << "[TCPAsio] Listening on port " << port << "\n";
+    std::cout << "[Asio TCP] Listening on port " << port << "\n";
 }
 
 void TCPAsio::update()
@@ -74,7 +74,7 @@ void TCPAsio::asyncAccept()
         [this, socket](std::error_code ec) {
             if (ec) {
                 if (_running)
-                    std::cerr << "[TCPAsio] Accept error: " << ec.message() << "\n";
+                    std::cerr << "[Asio TCP] Accept error: " << ec.message() << "\n";
                 return;
             }
             uint32_t id = _nextId++;
@@ -145,7 +145,7 @@ void TCPAsio::sendRaw(std::shared_ptr<asio::ip::tcp::socket> socket, tcp_OpCode 
     asio::async_write(*socket, asio::buffer(*packet),
         [packet](std::error_code ec, std::size_t) {
             if (ec)
-                std::cerr << "[TCPAsio] Write error: " << ec.message() << "\n";
+                std::cerr << "[Asio TCP] Write error: " << ec.message() << "\n";
         });
 }
 

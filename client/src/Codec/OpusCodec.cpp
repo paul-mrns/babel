@@ -6,7 +6,6 @@
 */
 
 #include "../../include/Codec/OpusCodec.hpp"
-#include <stdexcept>
 
 namespace babel {
 
@@ -17,13 +16,14 @@ OpusCodec::OpusCodec(int sampleRate, int channels, int bitrate)
 
     _encoder = opus_encoder_create(_sampleRate, _channels, OPUS_APPLICATION_VOIP, &err);
     if (err != OPUS_OK)
-        throw std::runtime_error("Opus: Failed to create encoder");
+        throw std::runtime_error("[Opus Codec] Failed to create encoder");
 
     _decoder = opus_decoder_create(_sampleRate, _channels, &err);
     if (err != OPUS_OK)
-        throw std::runtime_error("Opus: Failed to create decoder");
+        throw std::runtime_error("[Opus Codec] Failed to create decoder");
 
     opus_encoder_ctl(_encoder, OPUS_SET_BITRATE(_bitrate));
+    std::cout << "[Opus Codec] has been initialised" << std::endl;
 }
 
 OpusCodec::~OpusCodec()
@@ -47,7 +47,7 @@ std::vector<uint8_t> OpusCodec::encode(const AudioBuffer& input)
     );
 
     if (nbBytes < 0)
-        throw std::runtime_error("Opus: Encoding error");
+        throw std::runtime_error("[Opus Codec] Encoding error");
     output.resize(nbBytes);
     return output;
 }
@@ -69,7 +69,7 @@ AudioBuffer OpusCodec::decode(const std::vector<uint8_t>& input)
     );
 
     if (frameCount < 0)
-        throw std::runtime_error("Opus: Decoding error");
+        throw std::runtime_error("[Opus Codec] Decoding error");
     return output;
 }
 

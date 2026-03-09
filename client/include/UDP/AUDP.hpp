@@ -15,12 +15,16 @@ namespace babel {
         public:
             virtual ~AUDPCommunication() = default;
 
-            void setOnDataReceived(std::function<void(const std::vector<unsigned char>&)> cb) override { _onDataReceived = cb; }
+            void setOnDataReceived(std::function<void(const std::vector<unsigned char>&)> cb) override
+            { 
+                _onDataReceived = cb;
+            }
+
             bool isRunning() const override { return _isRunning; }
 
         protected:
-            std::function<void(const std::vector<unsigned char>&)> _onDataReceived;
             bool _isRunning = false;
+            std::function<void(const std::vector<unsigned char>&)> _onDataReceived;
             uint16_t _localPort = 0;
     };
 }

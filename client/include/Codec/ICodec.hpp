@@ -10,6 +10,8 @@
 
 #include <vector>
 #include <cstdint>
+#include <stdexcept>
+#include <iostream>
 #include "AudioStream/IAudioStream.hpp"
 
 namespace babel {

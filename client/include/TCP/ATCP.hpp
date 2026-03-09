@@ -18,13 +18,13 @@ namespace babel {
                 _onMessage = callback;
             }
 
-            bool isConnected() const override { return _isConnected; }
+            bool isRunning() const override { return _isRunning; }
 
             std::string getIP() const override { return _localIP; }
             uint16_t getPort() const override { return _localPort; }
 
         protected:
-            bool _isConnected = false;
+            bool _isRunning = false;
             Tcp_Header _header;
             std::vector<uint8_t> _body;
             std::function<void(Tcp_Header, std::vector<uint8_t>)> _onMessage;

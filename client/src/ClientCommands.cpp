@@ -16,10 +16,10 @@ void Client::initCommandDispatch()
     _dispatchTable.push_back({"CONNECT", [this](const auto& args) { connectCmd(args); }});
     _dispatchTable.push_back({"LOGIN", [this](const auto& args) { loginCmd(args); }});
     _dispatchTable.push_back({"REGISTER", [this](const auto& args) { registerCmd(args); }});
+    _dispatchTable.push_back({"STATE", [this](const auto& args) { stateCmd(args); }});
     _dispatchTable.push_back({"HELP", [this](const auto& args) { helpCmd(args); }});
     _dispatchTable.push_back({"USERS", [this](const auto& args) { listCmd(args); }});
     _dispatchTable.push_back({"CALL", [this](const auto& args) { callCmd(args); }});
-    _dispatchTable.push_back({"END_CALL", [this](const auto& args) { endCallCmd(args); }});
     _dispatchTable.push_back({"EXIT", [this](const auto& args) { exitCmd(args); }});
 }
 
@@ -43,6 +43,16 @@ void Client::handleCommand(const std::string& command)
 
     if (_state == ClientState::INCOMING_CALL) {
         answerCallCmd(cmdKeyword);
+        return;
+    }
+
+    if (_state == ClientState::IN_CALL) {
+        if (cmdKeyword == "END_CALL")
+            endCallCmd(args);
+        else if (cmdKeyword == "EXIT")
+            exitCmd(args);
+        else
+            std::cout << "Only commands supported while in call are \"END_CALL\" and \"EXIT\"" << std::endl;
         return;
     }
 
@@ -80,7 +90,7 @@ void Client::registerCmd(std::vector<std::string> args)
         std::cerr << "Usage: REGISTER <username> <password>" << std::endl;
         return;
     }
-    if (!_tcp || !_tcp->isConnected()) {
+    if (!_tcp || !_tcp->isRunning()) {
         std::cerr << "Not connected to server. Use CONNECT command first." << std::endl;
         return;
     }
@@ -103,7 +113,7 @@ void Client::loginCmd(std::vector<std::string> args)
         std::cerr << "Usage: LOGIN <username> <password>" << std::endl;
         return;
     }
-    if (!_tcp || !_tcp->isConnected()) {
+    if (!_tcp || !_tcp->isRunning()) {
         std::cerr << "Not connected to server. Use CONNECT command first." << std::endl;
         return;
     }
@@ -127,16 +137,43 @@ void Client::helpCmd(std::vector<std::string> args)
     std::cout << "  CONNECT <ip> <port> - Connect to the server" << std::endl;
     std::cout << "  LOGIN <username> <password> - Log in to the server" << std::endl;
     std::cout << "  REGISTER <username> <password> - Register a new account" << std::endl;
+    std::cout << "  HELP - display available commands" << std::endl;
+    std::cout << "  STATE - display the user state (debug)" << std::endl;
     std::cout << "  USERS - List online users" << std::endl;
     std::cout << "  CALL <username> - Call a user" << std::endl;
     std::cout << "  END_CALL - End your active call" << std::endl;
     std::cout << "  EXIT - Exit the client" << std::endl;
 }
 
+void Client::stateCmd(std::vector<std::string> args)
+{
+    static_cast<void>(args);
+    switch (_state) {
+        case ClientState::DISCONNECTED:
+            std::cout << "Client is in state \"DISCONNECTED\": use \"CONNECT\" to connect to server " << std::endl;
+            break;
+        case ClientState::NOT_LOGGED_IN:
+            std::cout << "Client is in state \"NOT_LOGGED_IN\": use \"LOGIN\" or \"REGISTER\"" << std::endl;    
+            break;
+        case ClientState::IDLE:
+            std::cout << "Client is in state \"IDLE\"" << std::endl;    
+            break;
+        case ClientState::INCOMING_CALL:
+            std::cout << "Client is in state \"INCOMMING CALL\": respond with \"ACCEPT\" or \"DECLINE\"" << std::endl;    
+            break;
+        case ClientState::IN_CALL:
+            std::cout << "Client is in state \"IN_CALL\": you can exit by entering \"END_CALL\" or \"EXIT\" to exit Babel" << std::endl;    
+            break;
+        default:
+            std::cout << "Unknow state\n";
+            break;
+    }
+}
+
 void Client::listCmd(std::vector<std::string> args)
 {
     static_cast<void>(args);
-    if (!_tcp || !_tcp->isConnected()) {
+    if (!_tcp || !_tcp->isRunning()) {
         std::cerr << "Not connected to server. Use CONNECT command first." << std::endl;
         return;
     }
@@ -153,7 +190,7 @@ void Client::callCmd(std::vector<std::string> args)
         std::cerr << "Usage: CALL <username>" << std::endl;
         return;
     }
-    if (!_tcp || !_tcp->isConnected()) {
+    if (!_tcp || !_tcp->isRunning()) {
         std::cerr << "Not connected to server. Use CONNECT command first." << std::endl;
         return;
     }
@@ -170,20 +207,21 @@ void Client::endCallCmd(std::vector<std::string> args)
 {
     static_cast<void>(args);
     _tcp->sendPacket(tcp_OpCode::END_CALL, {});
-
-    // shutdown udp port
+    if (_udp && _udp->isRunning())
+        _udp->stop();
     std::cout << "[Client] Call ended by user.\n";
 }
 
 
 void Client::exitCmd(std::vector<std::string> args)
 {
-    static_cast<void>(args);
-    std::cout << "Exiting client..." << std::endl;
-    if (_tcp && _tcp->isConnected()) {
-        _tcp->disconnect();
+    if (_tcp && _tcp->isRunning()) {
+        _tcp->stop();
     }
+    if (_udp && _udp->isRunning())
+        endCallCmd(args);
     _running = false;
+    std::cout << "Exiting client..." << std::endl;
 }
 
 void Client::answerCallCmd(std::string answer)

@@ -8,10 +8,11 @@
 #ifndef CLIENT_HPP_
 #define CLIENT_HPP_
 
-#include "AudioStream/AudioPortStream.hpp"
-#include "Codec/OpusCodec.hpp"
 #include "TCP/TCPFactory.hpp"
 #include "UDP/UDPFactory.hpp"
+#include "AudioStream/AudioStreamFactory.hpp"
+#include "Codec/CodecFactory.hpp"
+
 #include <string>
 #include <memory>
 #include <vector>
@@ -42,11 +43,11 @@ namespace babel {
             void handleCommand(const std::string& command);
             void handlePacket(Tcp_Header hdr, std::vector<uint8_t> body);
         
-            //commands
             void connectCmd(std::vector<std::string> args);
             void loginCmd(std::vector<std::string> args);
             void registerCmd(std::vector<std::string> args);
             void helpCmd(std::vector<std::string> args);
+            void stateCmd(std::vector<std::string> args);
             void listCmd(std::vector<std::string> args);
             void callCmd(std::vector<std::string> args);
             void endCallCmd(std::vector<std::string> args);
@@ -58,6 +59,8 @@ namespace babel {
 
             void networkLoop();
 
+            void callProcess();
+
             std::thread _networkThread;
             std::vector<std::pair<std::string, std::function<void(const std::vector<std::string>&)>>> _dispatchTable;
 
@@ -66,6 +69,9 @@ namespace babel {
 
             UDPSystem _udpSystem;
             std::unique_ptr<IUDPCommunication> _udp;
+
+            std::unique_ptr<ICodec> _codec;
+            std::unique_ptr<IAudioStream> _audioStream;
 
             ClientState _state;
             std::string _myUsername;

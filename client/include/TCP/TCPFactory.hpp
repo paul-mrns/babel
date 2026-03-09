@@ -13,6 +13,11 @@
 #include <stdexcept>
 
 namespace babel {
+    
+    enum class TCPSystem {
+        ASIO
+    };
+    
     class TCPFactory {
         public:
             static std::unique_ptr<ITCPCommunication> create(TCPSystem system)

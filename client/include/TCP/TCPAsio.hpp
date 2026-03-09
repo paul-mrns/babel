@@ -17,12 +17,12 @@ namespace babel {
         
         public:
             TCPAsio() : _io(), _socket(_io) {}
-            ~TCPAsio() { disconnect(); }
+            ~TCPAsio() { stop(); }
 
             bool connectToServer(const std::string& ip, int port) override;
             void sendPacket(tcp_OpCode op, const std::vector<uint8_t>& body) override;
             void update() override;
-            void disconnect() override;
+            void stop() override;
 
         private:
             void asyncReadHeader();

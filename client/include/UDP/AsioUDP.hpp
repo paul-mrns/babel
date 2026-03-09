@@ -22,8 +22,8 @@ namespace babel {
 
             uint16_t bind() override;
             void connect(const std::string& remoteIp, uint16_t remotePort) override;
-            void stop() override;
             void sendAudio(const std::vector<unsigned char>& data) override;
+            void stop() override;
 
         private:
             void asyncReceive();

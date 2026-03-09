@@ -13,6 +13,11 @@
 #include <stdexcept>
 
 namespace babel {
+
+    enum class UDPSystem {
+        ASIO
+    };
+
     class UDPFactory {
         public:
             static std::unique_ptr<IUDPCommunication> create(UDPSystem system)

@@ -40,10 +40,10 @@ void Client::run()
     }
 }
 
-void babel::Client::networkLoop()
+void Client::networkLoop()
 {
     while (_running) {
-        if (_tcp && _tcp->isConnected())
+        if (_tcp && _tcp->isRunning())
             _tcp->update();
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
@@ -58,7 +58,7 @@ void Client::handlePacket(Tcp_Header header, std::vector<uint8_t> body)
                 _state = ClientState::NOT_LOGGED_IN;
             } else {
                 std::cerr << "Server rejected connection.\n";
-                _tcp->disconnect();
+                _tcp->stop();
             }
             break;
 
@@ -173,6 +173,30 @@ void Client::startCall(std::vector<uint8_t> body)
         std::cerr << "[Client] Error: UDP system not initialized." << std::endl;
         return;
     }
+    callProcess();
 }
 
+void Client::callProcess()
+{
+    _codec = CodecFactory::create(CodecSystem::OPUS);
+    _audioStream = AudioStreamFactory::create(AudioStreamSystem::AUDIOPORT);
+
+    if (!_codec || !_audioStream) {
+        std::cerr << "[Client] Call initialization failed: hardware/codec error." << std::endl;
+        return;
+    }
+    _udp->setOnDataReceived([this](const std::vector<uint8_t>& encryptedData) {
+        if (_codec && _audioStream) {
+            AudioBuffer audioPacket = _codec->decode(encryptedData);
+            _audioStream->write(audioPacket);
+        }
+    });
+    _audioStream->setOnReadCallback([this](const AudioBuffer& rawPcm) {
+        if (_codec && _udp) {
+            std::vector<uint8_t> opusPacket = _codec->encode(rawPcm);
+            _udp->sendAudio(opusPacket);
+        }
+    });
+    _audioStream->start();
+}
 }
