@@ -36,4 +36,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: babel-client-windows
-        path: build/client/Release/babel_client.exe
+        path: build/build/client/Release/babel_client.exe
