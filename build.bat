@@ -25,7 +25,7 @@ echo [LOG] Configuring CMake...
 cmake --preset conan-default
 
 echo [LOG] Compiling Binaries...
-cmake --build --preset conan-default --config Release
+cmake --build --preset conan-release --config Release
 
 echo [LOG] Build process complete.
 pause
