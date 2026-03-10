@@ -5,7 +5,9 @@
 ** AAudioStream.hpp
 */
 
-#pragma once
+#ifndef AAUDIOSTREAM_HPP_
+#define AAUDIOSTREAM_HPP_
+
 #include "IAudioStream.hpp"
 #include <mutex>
 
@@ -40,3 +42,5 @@ namespace babel {
             }
     };
 }
+
+#endif

@@ -1,32 +1,31 @@
 @echo off
 setlocal
 
-:: 1. Setup Virtual Environment
 if not exist .venv (
     echo [LOG] Creating Python Virtual Environment...
     python -m venv .venv
 )
 call .venv\Scripts\activate.bat
 
-:: 2. Ensure Conan is installed
 echo [LOG] Installing/Updating Conan...
 python -m pip install conan --quiet
 
-:: 3. Prep Build Directory
+echo [LOG] Detecting System Profile...
+if exist %USERPROFILE%\.conan2\profiles\default (
+    del /f %USERPROFILE%\.conan2\profiles\default
+)
+conan profile detect --force
+
 if not exist build mkdir build
 
-:: 4. Conan Install
 echo [LOG] Fetching Dependencies...
-conan install . --output-folder=build --build=missing -s build_type=Release
+conan install . --output-folder=build --build=missing -pr:b=default -pr:h=default -s build_type=Release
 
-:: 5. CMake Configuration
 echo [LOG] Configuring CMake...
-cmake -S . -B build -G "Visual Studio 17 2022" ^
-    -DCMAKE_TOOLCHAIN_FILE="build/build/generators/conan_toolchain.cmake"
+cmake --preset conan-default
 
-:: 6. Compilation
 echo [LOG] Compiling Binaries...
-cmake --build build --config Release
+cmake --build --preset conan-release --config Release
 
 echo [LOG] Build process complete.
 pause

@@ -11,17 +11,12 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <map>
 #include "../../communication/TCPProtocol.hpp"
+#include "UserSession.hpp"
 #include "TCP/TCPFactory.hpp"
 
 namespace babel {
-
-    struct User {
-        uint32_t clientId;
-        std::string username;
-        std::string password;
-        bool online = false;
-    };
 
     class Server {
         public:
@@ -40,15 +35,18 @@ namespace babel {
             void handleRegister(uint32_t clientId, const std::vector<uint8_t>& body);
             void handleGetUsers(uint32_t clientId);
             void handleCall(uint32_t clientId, const std::vector<uint8_t>& body);
+            void handleAnswerCall(uint32_t clientId, const std::vector<uint8_t>& body);
             void handleEndCall(uint32_t clientId);
+            void handleStartCall(uint32_t clientId, const std::vector<uint8_t>& body);
 
-    
-            User* findByClientId(uint32_t clientId);
-            User* findByUsername(const std::string& username);
+            std::shared_ptr<UserSession> findSessionByUsername(const std::string& username);
 
             std::unique_ptr<ITCPCommunication> _tcp;
-            std::vector<User> _users;
+            std::map<uint32_t, std::shared_ptr<UserSession>> _sessions;
+            std::map<uint32_t, uint32_t> _callQueries;
+            std::map<uint32_t, uint32_t> _activeCalls;
+
     };
-} // namespace babelabel
+}
 
 #endif

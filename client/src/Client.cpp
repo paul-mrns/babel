@@ -7,11 +7,12 @@
 
 #include "../include/Client.hpp"
 #include <iostream>
+#include <thread>
 
 namespace babel {
 
-Client::Client(TCPSystem netType)
-    : _netType(netType)
+Client::Client(TCPSystem tcpSys, UDPSystem udpSys)
+    : _tcpSystem(tcpSys), _udpSystem(udpSys)
 {
     _running = true;
     _state = ClientState::DISCONNECTED;
@@ -20,74 +21,31 @@ Client::Client(TCPSystem netType)
     initCommandDispatch();
 }
 
-void Client::initCommandDispatch()
+void Client::run()
 {
-    _dispatchTable.push_back({"CONNECT", [this](const auto& args) { connectCmd(args); }});
-    _dispatchTable.push_back({"LOGIN", [this](const auto& args) { loginCmd(args); }});
-    _dispatchTable.push_back({"REGISTER", [this](const auto& args) { registerCmd(args); }});
-    _dispatchTable.push_back({"HELP", [this](const auto& args) { helpCmd(args); }});
-    _dispatchTable.push_back({"USERS", [this](const auto& args) { listCmd(args); }});
-    _dispatchTable.push_back({"CALL", [this](const auto& args) { callCmd(args); }});
-    _dispatchTable.push_back({"EXIT", [this](const auto& args) { exitCmd(args); }});
-}
+    _networkThread = std::thread(&Client::networkLoop, this);
 
-void Client::handleCommand(const std::string& command)
-{
-    std::vector<std::string> tokens;
-    std::stringstream ss(command);
-    std::string temp;
-    while (ss >> temp) {
-        tokens.push_back(temp);
-    }
-
-    if (tokens.empty())
-        return;
-
-    std::string cmdKeyword = tokens[0];
-    std::vector<std::string> args;
-    if (tokens.size() > 1) {
-        args.assign(tokens.begin() + 1, tokens.end());
-    }
-
-    for (const auto& pair : _dispatchTable) {
-        if (cmdKeyword == pair.first) {
-            pair.second(args);
-            return;
-        }
-    }
-    std::cerr << "Unknown command: " << cmdKeyword << ". Type 'HELP' for help." << std::endl;
-}
-
-void Client::update()
-{
-    if (_tcp && _tcp->isConnected())
-        _tcp->update();
     std::string input;
-
-    std::cout << "Babel> ";
-    std::getline(std::cin, input);
-    if (!input.empty())
-        handleCommand(input);
-    if (_tcp && _tcp->isConnected())
-        _tcp->update();
-}
-
-void Client::connectCmd(std::vector<std::string> args)
-{
-    if (args.size() != 2) {
-        std::cerr << "Usage: CONNECT <ip> <port>\n";
-        return;
+    while (_running) {
+        std::getline(std::cin, input);
+        if (!input.empty())
+            handleCommand(input);
+        if (!_running)
+            break;
     }
 
-    try {
-        _tcp = TCPFactory::create(_netType);
-        _tcp->connectToServer(args[0], std::stoi(args[1]));
-        _tcp->onMessage([this](Tcp_Header header, std::vector<uint8_t> body) {
-            handlePacket(header, body);
-        });
-        _tcp->sendPacket(tcp_OpCode::CONNECT, {});
-    } catch (const std::exception& ex) {
-        std::cerr << "Connection failed: " << ex.what() << "\n";
+    _running = false;
+    if (_networkThread.joinable()) {
+        _networkThread.join();
+    }
+}
+
+void Client::networkLoop()
+{
+    while (_running) {
+        if (_tcp && _tcp->isRunning())
+            _tcp->update();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
 
@@ -96,16 +54,16 @@ void Client::handlePacket(Tcp_Header header, std::vector<uint8_t> body)
     switch (header.op_code) {
 
         case tcp_OpCode::CONNECT_RESPONSE:
-            if (!body.empty() && body[0] == 0x00) {
+            if (!body.empty() && body[0] == SUCCESS) {
                 _state = ClientState::NOT_LOGGED_IN;
             } else {
                 std::cerr << "Server rejected connection.\n";
-                _tcp->disconnect();
+                _tcp->stop();
             }
             break;
 
         case tcp_OpCode::LOGIN_RESPONSE:
-            if (!body.empty() && body[0] == 0x00) {
+            if (!body.empty() && body[0] == SUCCESS) {
                 _state = ClientState::IDLE;
                 std::cout << "Logged in as " << _myUsername << ".\n";
             } else {
@@ -114,8 +72,9 @@ void Client::handlePacket(Tcp_Header header, std::vector<uint8_t> body)
             break;
 
         case tcp_OpCode::REGISTER_RESPONSE:
-            if (!body.empty() && body[0] == 0x00) {
-                std::cout << "Registration successful. You can now LOGIN.\n";
+            if (!body.empty() && body[0] == SUCCESS) {
+                _state = ClientState::IDLE;
+                std::cout << "Registration successful. You are now logged in.\n";
             } else {
                 std::cerr << "Registration failed.\n";
             }
@@ -127,7 +86,7 @@ void Client::handlePacket(Tcp_Header header, std::vector<uint8_t> body)
             for (uint8_t byte : body) {
                 if (byte == 0x00) {
                     if (!user.empty()) {
-                        std::cout << "  - " << user << "\n";
+                        std::cout << "  - " << user << std::endl;
                         user.clear();
                     }
                 } else {
@@ -135,27 +94,30 @@ void Client::handlePacket(Tcp_Header header, std::vector<uint8_t> body)
                 }
             }
             if (!user.empty())
-                std::cout << "  - " << user << "\n";
+                std::cout << "  - " << user << std::endl;
             break;
         }
 
-        case tcp_OpCode::CALL_RESPONSE:
+        case tcp_OpCode::CALL_RESULT:
             if (!body.empty()) {
                 if (body[0] == 0x00) {
-                    _state = ClientState::IN_CALL;
-                    std::cout << "Call accepted.\n";
+                    createCallSocket();
                 } else if (body[0] == 0x01) {
-                    std::cerr << "Call failed: user not found.\n";
+                    std::cout << "Call failed: user not found.\n";
                 } else if (body[0] == 0x02) {
-                    std::cerr << "Call failed: user is busy.\n";
+                    std::cout << "Call failed: user is busy.\n";
+                } else if (body[0] == 0X03) {
+                    std::cout << "Call has been declined.\n";
+                } else {
+                    std::cout << "Cannot call yourself.\n";
                 }
             }
             break;
 
-        case tcp_OpCode::CALL:
-            std::cout << "Incoming call from: "
-                      << std::string(body.begin(), body.end()) << "\n";
-            std::cout << "Type ACCEPT or DECLINE.\n";
+        case tcp_OpCode::INCOMING_CALL:
+            std::cout << "Incoming call from: " << std::string(body.begin(), body.end()) << std::endl;
+            std::cout << "Enter \"ACCEPT\" or \"DECLINE\"" << std::endl;
+            _state = ClientState::INCOMING_CALL;
             break;
 
         case tcp_OpCode::END_CALL:
@@ -163,113 +125,78 @@ void Client::handlePacket(Tcp_Header header, std::vector<uint8_t> body)
             std::cout << "Call ended.\n";
             break;
 
+        case tcp_OpCode::START_CALL:
+            startCall(body);
+            break;
+
         default:
-            std::cerr << "Unknown opcode: 0x"
-                      << std::hex << static_cast<int>(header.op_code) << std::dec << "\n";
+            std::cerr << "Unknown opcode: 0x" << std::hex << static_cast<int>(header.op_code) << std::dec << std::endl;
             break;
     }
 }
 
-void Client::loginCmd(std::vector<std::string> args)
+void Client::createCallSocket()
 {
-    if (args.size() != 2) {
-        std::cerr << "Usage: LOGIN <username> <password>" << std::endl;
+    _state = ClientState::IN_CALL;
+    std::cout << "Call accepted.\n";
+    _udp = UDPFactory::create(_udpSystem);
+    uint16_t chosenPort = _udp->bind();
+    std::string localIp = _tcp->getIP();
+    if (chosenPort == 0) {
+        std::cerr << "[Client] Critical Error: Could not bind local UDP port.\n";
         return;
     }
-    if (!_tcp || !_tcp->isConnected()) {
-        std::cerr << "Not connected to server. Use CONNECT command first." << std::endl;
-        return;
-    }
-    if (_state != ClientState::NOT_LOGGED_IN) {
-        std::cerr << "Already logged in or in wrong state." << std::endl;
-        return;
-    }
-    std::string username = args[0];
-    _myUsername = username;
-    std::string password = args[1];
-    std::vector<uint8_t> body(username.begin(), username.end());
-    body.push_back(0);
-    body.insert(body.end(), password.begin(), password.end());
-    _tcp->sendPacket(tcp_OpCode::LOGIN, body);
+    std::vector<uint8_t> packetBody;
+    packetBody.push_back((chosenPort >> 8) & 0xFF);
+    packetBody.push_back(chosenPort & 0xFF);
+    packetBody.insert(packetBody.end(), localIp.begin(), localIp.end());
+    _tcp->sendPacket(tcp_OpCode::START_CALL, packetBody);
 }
 
-void Client::registerCmd(std::vector<std::string> args)
+void Client::startCall(std::vector<uint8_t> body)
 {
-    if (args.size() != 2) {
-        std::cerr << "Usage: REGISTER <username> <password>" << std::endl;
+    if (body.size() < 3) {
+        std::cerr << "[Client] Error: Received invalid UDP packet." << std::endl;
         return;
     }
-    if (!_tcp || !_tcp->isConnected()) {
-        std::cerr << "Not connected to server. Use CONNECT command first." << std::endl;
+    uint16_t peerPort = (body[0] << 8) | body[1];
+    std::string peerIp(body.begin() + 2, body.end());
+
+    if (peerPort == 0 || peerIp.empty()) {
+        std::cerr << "[Client] Error: Invalid Address -> " << peerIp << ":" << peerPort << std::endl;
         return;
     }
-    if (_state != ClientState::NOT_LOGGED_IN) {
-        std::cerr << "Already logged in or in wrong state." << std::endl;
+    std::cout << "Connecting to " << peerIp << ":" << peerPort << std::endl;
+    if (_udp) {
+        _udp->connect(peerIp, peerPort);
+    } else {
+        std::cerr << "[Client] Error: UDP system not initialized." << std::endl;
         return;
     }
-    std::string username = args[0];
-    _myUsername = username;
-    std::string password = args[1];
-    std::vector<uint8_t> body(username.begin(), username.end());
-    body.push_back(0);
-    body.insert(body.end(), password.begin(), password.end());
-    _tcp->sendPacket(tcp_OpCode::REGISTER, body);
+    callProcess();
 }
 
-void Client::helpCmd(std::vector<std::string> args)
+void Client::callProcess()
 {
-    static_cast<void>(args);
-    std::cout << "Available commands:" << std::endl;
-    std::cout << "  CONNECT <ip> <port> - Connect to the server" << std::endl;
-    std::cout << "  LOGIN <username> <password> - Log in to the server" << std::endl;
-    std::cout << "  REGISTER <username> <password> - Register a new account" << std::endl;
-    std::cout << "  USERS - List online users" << std::endl;
-    std::cout << "  CALL <username> - Call a user" << std::endl;
-    std::cout << "  EXIT - Exit the client" << std::endl;
+    _codec = CodecFactory::create(CodecSystem::OPUS);
+    _audioStream = AudioStreamFactory::create(AudioStreamSystem::AUDIOPORT);
+
+    if (!_codec || !_audioStream) {
+        std::cerr << "[Client] Call initialization failed: hardware/codec error." << std::endl;
+        return;
+    }
+    _udp->setOnDataReceived([this](const std::vector<uint8_t>& encryptedData) {
+        if (_codec && _audioStream) {
+            AudioBuffer audioPacket = _codec->decode(encryptedData);
+            _audioStream->write(audioPacket);
+        }
+    });
+    _audioStream->setOnReadCallback([this](const AudioBuffer& rawPcm) {
+        if (_codec && _udp) {
+            std::vector<uint8_t> opusPacket = _codec->encode(rawPcm);
+            _udp->sendAudio(opusPacket);
+        }
+    });
+    _audioStream->start();
 }
-
-void Client::listCmd(std::vector<std::string> args)
-{
-    static_cast<void>(args);
-    if (!_tcp || !_tcp->isConnected()) {
-        std::cerr << "Not connected to server. Use CONNECT command first." << std::endl;
-        return;
-    }
-    if (_state == ClientState::NOT_LOGGED_IN) {
-        std::cerr << "Not logged in. Use LOGIN or REGISTER command first." << std::endl;
-        return;
-    }
-    _tcp->sendPacket(tcp_OpCode::GET_USERS, {});
-}
-
-void Client::callCmd(std::vector<std::string> args)
-{
-    if (args.size() != 1) {
-        std::cerr << "Usage: CALL <username>" << std::endl;
-        return;
-    }
-    if (!_tcp || !_tcp->isConnected()) {
-        std::cerr << "Not connected to server. Use CONNECT command first." << std::endl;
-        return;
-    }
-    if (_state != ClientState::IDLE) {
-        std::cerr << "Cannot make a call in the current state." << std::endl;
-        return;
-    }
-    std::string targetUser = args[0];
-    std::vector<uint8_t> body(targetUser.begin(), targetUser.end());
-    _tcp->sendPacket(tcp_OpCode::CALL, body);
-
-}
-
-void Client::exitCmd(std::vector<std::string> args)
-{
-    static_cast<void>(args);
-    std::cout << "Exiting client..." << std::endl;
-    if (_tcp && _tcp->isConnected()) {
-        _tcp->disconnect();
-    }
-    _running = false;
-}
-
 }

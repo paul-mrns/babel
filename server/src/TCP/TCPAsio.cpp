@@ -20,7 +20,7 @@ void TCPAsio::listen(int port)
     _acceptor.listen();
     _running = true;
     asyncAccept();
-    std::cout << "[TCPAsio] Listening on port " << port << "\n";
+    std::cout << "[Asio TCP] Listening on port " << port << "\n";
 }
 
 void TCPAsio::update()
@@ -74,7 +74,7 @@ void TCPAsio::asyncAccept()
         [this, socket](std::error_code ec) {
             if (ec) {
                 if (_running)
-                    std::cerr << "[TCPAsio] Accept error: " << ec.message() << "\n";
+                    std::cerr << "[Asio TCP] Accept error: " << ec.message() << "\n";
                 return;
             }
             uint32_t id = _nextId++;
@@ -145,8 +145,22 @@ void TCPAsio::sendRaw(std::shared_ptr<asio::ip::tcp::socket> socket, tcp_OpCode 
     asio::async_write(*socket, asio::buffer(*packet),
         [packet](std::error_code ec, std::size_t) {
             if (ec)
-                std::cerr << "[TCPAsio] Write error: " << ec.message() << "\n";
+                std::cerr << "[Asio TCP] Write error: " << ec.message() << "\n";
         });
+}
+
+std::string babel::TCPAsio::getClientIp(uint32_t clientId) const
+{
+    auto it = _clients.find(clientId);
+    
+    if (it != _clients.end() && it->second && it->second->is_open()) {
+        try {
+            return it->second->remote_endpoint().address().to_string();
+        } catch (const std::exception&) {
+            return "0.0.0.0";
+        }
+    }
+    return "0.0.0.0";
 }
 
 }

@@ -8,9 +8,11 @@
 #ifndef CLIENT_HPP_
 #define CLIENT_HPP_
 
-#include "AudioStream/PortAudioStream.hpp"
-#include "Codec/OpusCodec.hpp"
 #include "TCP/TCPFactory.hpp"
+#include "UDP/UDPFactory.hpp"
+#include "AudioStream/AudioStreamFactory.hpp"
+#include "Codec/CodecFactory.hpp"
+
 #include <string>
 #include <memory>
 #include <vector>
@@ -22,15 +24,16 @@ namespace babel {
         DISCONNECTED,
         NOT_LOGGED_IN,
         IDLE,
+        INCOMING_CALL,
         IN_CALL
     };
 
     class Client {
         public:
-            Client(TCPSystem netType);
+            Client(TCPSystem tcpSys, UDPSystem udpSys);
             ~Client() = default;
 
-            void update();
+            void run();
 
             ClientState getState() const { return _state; }
             bool _isRunning() const { return _running; }
@@ -38,23 +41,40 @@ namespace babel {
         private:
             void initCommandDispatch();
             void handleCommand(const std::string& command);
+            void handlePacket(Tcp_Header hdr, std::vector<uint8_t> body);
         
-            //commands
             void connectCmd(std::vector<std::string> args);
             void loginCmd(std::vector<std::string> args);
             void registerCmd(std::vector<std::string> args);
             void helpCmd(std::vector<std::string> args);
+            void stateCmd(std::vector<std::string> args);
             void listCmd(std::vector<std::string> args);
             void callCmd(std::vector<std::string> args);
+            void endCallCmd(std::vector<std::string> args);
             void exitCmd(std::vector<std::string> args);
+            void answerCallCmd(std::string answer);
 
-            void handlePacket(Tcp_Header hdr, std::vector<uint8_t> body);
+            void createCallSocket();
+            void startCall(std::vector<uint8_t> body);
 
+            void networkLoop();
+
+            void callProcess();
+
+            std::thread _networkThread;
             std::vector<std::pair<std::string, std::function<void(const std::vector<std::string>&)>>> _dispatchTable;
+
+            TCPSystem _tcpSystem;
             std::unique_ptr<ITCPCommunication> _tcp;
+
+            UDPSystem _udpSystem;
+            std::unique_ptr<IUDPCommunication> _udp;
+
+            std::unique_ptr<ICodec> _codec;
+            std::unique_ptr<IAudioStream> _audioStream;
+
             ClientState _state;
             std::string _myUsername;
-            TCPSystem _netType;
             bool _running;
     };
 }

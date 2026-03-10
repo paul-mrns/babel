@@ -5,7 +5,9 @@
 ** IAudioStream.hpp
 */
 
-#pragma once
+#ifndef IAUDIOSTREAM_HPP_
+#define IAUDIOSTREAM_HPP_
+
 #include <vector>
 #include <functional>
 
@@ -31,3 +33,5 @@ namespace babel {
             virtual void write(const AudioBuffer& data) = 0;
     };
 }
+
+#endif

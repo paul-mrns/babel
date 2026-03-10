@@ -5,7 +5,10 @@
 ** AudioPort.hpp
 */
 
-#pragma once
+
+#ifndef AUDIOPORTSTREAM_HPP_
+#define AUDIOPORTSTREAM_HPP_
+
 #include "AAudioStream.hpp"
 #include <mutex>
 #include <deque>
@@ -14,11 +17,11 @@ extern "C" {
 }
 
 namespace babel {
-    class PortAudioStream : public AAudioStream {
+    class AudioPortStream : public AAudioStream {
         
         public:
-            PortAudioStream();
-            ~PortAudioStream() override;
+            AudioPortStream();
+            ~AudioPortStream() override;
             void start() override;
             void stop() override;
             void write(const AudioBuffer& data) override;
@@ -39,3 +42,5 @@ namespace babel {
             PaStreamParameters setOutputDevice();
     };
 }
+
+#endif
