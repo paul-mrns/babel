@@ -36,7 +36,7 @@ OpusCodec::~OpusCodec()
 
 std::vector<uint8_t> OpusCodec::encode(const AudioBuffer& input)
 {
-    int frameSizePerChannel = input.samples.size() / _channels;
+    int frameSizePerChannel = static_cast<int>(input.samples.size() / _channels);
 
     std::vector<uint8_t> output(OPUS_MAX_PACKET_SIZE);
 

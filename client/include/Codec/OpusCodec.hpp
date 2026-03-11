@@ -13,6 +13,8 @@
 extern "C" {
     #include <opus/opus.h>
 }
+#include <string>
+#include <stdexcept>
 
 namespace babel {
 
