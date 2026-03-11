@@ -10,11 +10,13 @@
 
 #include <memory>
 #include "AudioPortStream.hpp"
+#include "MiniAudioStream.hpp"
 
 namespace babel {
 
     enum class AudioStreamSystem {
-        AUDIOPORT
+        AUDIOPORT,
+        MINIAUDIO
     };
 
     class AudioStreamFactory {
@@ -22,6 +24,9 @@ namespace babel {
             static std::unique_ptr<IAudioStream> create(AudioStreamSystem type) {
                 if (type == AudioStreamSystem::AUDIOPORT) {
                     return std::make_unique<AudioPortStream>();
+                }
+                if (type == AudioStreamSystem::MINIAUDIO) {
+                    return std::make_unique<MiniAudioStream>();
                 }
                 return nullptr;
             }

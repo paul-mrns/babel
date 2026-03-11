@@ -3,6 +3,7 @@ add_executable(babel_client
     src/Client.cpp
     src/ClientCommands.cpp
     src/AudioStream/AudioPortStream.cpp
+    src/AudioStream/MiniAudioStream.cpp
     src/Codec/OpusCodec.cpp
     src/TCP/TCPAsio.cpp
     src/UDP/AsioUDP.cpp
@@ -10,6 +11,8 @@ add_executable(babel_client
     include/AudioStream/IAudioStream.hpp
     include/AudioStream/AAudioStream.hpp
     include/AudioStream/AudioPortStream.hpp
+    include/AudioStream/MiniAudioStream.hpp
+    include/AudioStream/AudioStreamFactory.hpp
     include/Codec/ICodec.hpp
     include/Codec/ACodec.hpp
     include/Codec/OpusCodec.hpp
@@ -36,9 +39,12 @@ if(UNIX AND NOT APPLE)
         asio::asio 
         -Wl,--start-group 
         ${PA_TARGET}
+        miniaudio::miniaudio
         asound              # ALSA
         jack                # JACK
         pthread
+        dl                  # Drivers
+        m                   # Math
         -Wl,--end-group
     )
     target_link_options(babel_client PRIVATE "-Wl,--no-as-needed")
@@ -47,6 +53,7 @@ else()
         Opus::opus 
         asio::asio 
         ${PA_TARGET}
+        miniaudio::miniaudio
     )
 endif()
 

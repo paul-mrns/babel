@@ -13,6 +13,7 @@ endif()
 find_package(asio REQUIRED)
 find_package(portaudio REQUIRED) 
 find_package(Opus REQUIRED)
+find_package(miniaudio REQUIRED)
 
 add_subdirectory(server)
 add_subdirectory(client)
