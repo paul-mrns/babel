@@ -11,7 +11,7 @@
 namespace babel {
 
 AudioPortStream::AudioPortStream()
-    : _stream(nullptr)
+    : AAudioStream(DEFAULT_SAMPLE_RATE, DEFAULT_CHANNELS), _stream(nullptr)
 {
     if (Pa_Initialize() != paNoError)
         throw std::runtime_error("PortAudio: Failed to initialize");
@@ -84,39 +84,38 @@ void AudioPortStream::write(const AudioBuffer& data)
 int AudioPortStream::paCallback(const void *input, void *output, unsigned long frameCount, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void *userData)
 {
     auto *self = static_cast<AudioPortStream*>(userData);
-    const float *in  = static_cast<const float*>(input);
+    const float *in = static_cast<const float*>(input);
     float *out = static_cast<float*>(output);
-    const unsigned long samples = frameCount * DEFAULT_CHANNELS;
-
-    if (!in || !out) {
-        return paContinue;
-    }
 
     // IN
-    if (self->_onReadCallback) {
-        AudioBuffer buf;
-        buf.sampleRate = DEFAULT_SAMPLE_RATE;
-        buf.channels = DEFAULT_CHANNELS;
-        buf.samples.assign(in, in + samples);
-        self->_onReadCallback(buf);
+    if (in) {
+        self->_inputBuffer.insert(self->_inputBuffer.end(), in, in + frameCount);
+
+        while (self->_inputBuffer.size() >= 480) {
+            AudioBuffer buf;
+            buf.samples.assign(self->_inputBuffer.begin(), self->_inputBuffer.begin() + 480);
+            self->_inputBuffer.erase(self->_inputBuffer.begin(), self->_inputBuffer.begin() + 480);
+            
+            if (self->_onReadCallback) self->_onReadCallback(buf);
+        }
     }
 
     // OUT
-    std::unique_lock<std::mutex> lock(self->_queueMutex);
-    if (!lock.owns_lock()) {
-        std::fill(out, out + samples, 0.0f);
-        return paContinue;
-    }
-    for (unsigned long i = 0; i < samples; ++i) {
-        out[i] = (self->_readIndex < self->_playbackBuffer.size())
-            ? self->_playbackBuffer[self->_readIndex++]
-            : 0.0f;
-    }
-    if (self->_readIndex >= self->_playbackBuffer.size()) {
-        self->_playbackBuffer.clear();
-        self->_readIndex = 0;
+    if (out) {
+        std::lock_guard<std::mutex> lock(self->_queueMutex);
+        for (unsigned long i = 0; i < frameCount; ++i) {
+            if (self->_readIndex < self->_playbackBuffer.size()) {
+                out[i] = self->_playbackBuffer[self->_readIndex++];
+            } else {
+                out[i] = 0.0f; // Silence
+            }
+        }
+
+        if (self->_readIndex >= self->_playbackBuffer.size()) {
+            self->_playbackBuffer.clear();
+            self->_readIndex = 0;
+        }
     }
     return paContinue;
 }
-
 } //namespace babel

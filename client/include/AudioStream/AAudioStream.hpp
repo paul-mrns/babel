@@ -15,7 +15,7 @@ namespace babel {
     class AAudioStream : public IAudioStream {
         
         public:
-            AAudioStream(int sampleRate = DEFAULT_SAMPLE_RATE, int channels = DEFAULT_SAMPLE_RATE) 
+            AAudioStream(int sampleRate = DEFAULT_SAMPLE_RATE, int channels = DEFAULT_CHANNELS) 
                 : _sampleRate(sampleRate), _channels(channels) {}
     
             void setOnReadCallback(OnRead callback) override

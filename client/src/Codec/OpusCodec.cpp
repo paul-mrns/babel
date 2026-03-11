@@ -36,40 +36,48 @@ OpusCodec::~OpusCodec()
 
 std::vector<uint8_t> OpusCodec::encode(const AudioBuffer& input)
 {
+    int frameSizePerChannel = input.samples.size() / _channels;
+
     std::vector<uint8_t> output(OPUS_MAX_PACKET_SIZE);
 
     opus_int32 nbBytes = opus_encode_float(
         _encoder, 
         input.samples.data(), 
-        _frameSize, 
+        frameSizePerChannel,
         output.data(), 
         static_cast<opus_int32>(output.size())
     );
 
     if (nbBytes < 0)
-        throw std::runtime_error("[Opus Codec] Encoding error");
+        throw std::runtime_error("[Opus Codec] Encoding error: " + std::to_string(nbBytes));
+    
     output.resize(nbBytes);
     return output;
 }
 
 AudioBuffer OpusCodec::decode(const std::vector<uint8_t>& input)
 {
+    if (input.empty()) return {};
+
     AudioBuffer output;
     output.sampleRate = _sampleRate;
     output.channels = _channels;
-    output.samples.resize(_frameSize * _channels);
+    const int maxFrameSize = 960; 
+    output.samples.resize(maxFrameSize * _channels);
 
     int frameCount = opus_decode_float(
         _decoder, 
         input.data(), 
         static_cast<opus_int32>(input.size()), 
         output.samples.data(), 
-        _frameSize, 
+        maxFrameSize,
         0
     );
-
-    if (frameCount < 0)
+    if (frameCount < 0) {
+        std::cerr << "[Opus] Decode Error Code: " << frameCount << std::endl;
         throw std::runtime_error("[Opus Codec] Decoding error");
+    }
+    output.samples.resize(frameCount * _channels);
     return output;
 }
 
