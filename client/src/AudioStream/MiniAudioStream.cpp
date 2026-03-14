@@ -7,6 +7,7 @@
 
 #define MINIAUDIO_IMPLEMENTATION
 #include "../../include/AudioStream/MiniAudioStream.hpp"
+#include <algorithm>
 
 namespace babel {
 
@@ -69,14 +70,14 @@ void MiniAudioStream::stop()
 void MiniAudioStream::write(const AudioBuffer& data)
 {
     std::lock_guard<std::mutex> lock(_queueMutex);
-    while (_playbackQueue.size() + data.samples.size() > _maxQueueSize) {
-        for(int i = 0; i < _channels && !_playbackQueue.empty(); ++i) {
-            _playbackQueue.pop_front();
-        }
+
+    if (_playbackQueue.size() + data.samples.size() > _maxQueueSize) {
+        size_t toRemove = _playbackQueue.size() / 2;
+        _playbackQueue.erase(_playbackQueue.begin(), _playbackQueue.begin() + toRemove);
     }
-    for (float sample : data.samples) {
-        _playbackQueue.push_back(sample);
-    }
+
+    for (float sample : data.samples)
+        _playbackQueue.push_back(std::clamp(sample, -1.0f, 1.0f));
 }
 
 void MiniAudioStream::dataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
