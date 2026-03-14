@@ -8,6 +8,7 @@
 #include "../include/Client.hpp"
 #include <iostream>
 #include <thread>
+#include <cmath>
 
 namespace babel {
 
@@ -189,8 +190,14 @@ void Client::callProcess()
         _audioStream->write(audioPacket);
     });
     _audioStream->setOnReadCallback([this](const AudioBuffer& rawPcm) {
-        std::vector<uint8_t> opusPacket = _encoder->encode(rawPcm);
-        _udp->sendAudio(opusPacket);
+        float sum = 0;
+        for (float s : rawPcm.samples) sum += s * s;
+        float rms = std::sqrt(sum / rawPcm.samples.size());
+
+        if (rms > 0.01f) {
+            std::vector<uint8_t> opusPacket = _encoder->encode(rawPcm);
+            _udp->sendAudio(opusPacket);
+        }
     });
     _audioStream->start();
 }
