@@ -11,8 +11,8 @@
 
 namespace babel {
 
-Client::Client(TCPSystem tcpSys, UDPSystem udpSys)
-    : _tcpSystem(tcpSys), _udpSystem(udpSys)
+Client::Client(TCPSystem tcpSys, UDPSystem udpSys, AudioStreamSystem audioSys, CodecSystem codecSys)
+    : _tcpSystem(tcpSys), _udpSystem(udpSys), _audioSystem(audioSys), _codecSystem(codecSys)
 {
     _running = true;
     _state = ClientState::DISCONNECTED;
@@ -178,9 +178,10 @@ void Client::startCall(std::vector<uint8_t> body)
 
 void Client::callProcess()
 {
-    _codec = CodecFactory::create(CodecSystem::OPUS);
-    _audioStream = AudioStreamFactory::create(AudioStreamSystem::AUDIOPORT);
-
+    if (!_codec) 
+        _codec = CodecFactory::create(_codecSystem);
+    if (!_audioStream)
+        _audioStream = AudioStreamFactory::create(_audioSystem);
     if (!_codec || !_audioStream) {
         std::cerr << "[Client] Call initialization failed: hardware/codec error." << std::endl;
         return;

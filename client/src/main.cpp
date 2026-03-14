@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
 
     // Normal
     try {
-        babel::Client client(babel::TCPSystem::ASIO, babel::UDPSystem::ASIO);
+        babel::Client client(babel::TCPSystem::ASIO, babel::UDPSystem::ASIO, babel::AudioStreamSystem::MINIAUDIO, babel::CodecSystem::OPUS);
         while (client._isRunning()) {
             client.run();
         }
