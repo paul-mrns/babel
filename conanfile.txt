@@ -2,6 +2,7 @@
 asio/1.24.0
 portaudio/19.7
 opus/1.4
+miniaudio/0.11.11
 
 [generators]
 CMakeDeps

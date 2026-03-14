@@ -30,7 +30,7 @@ namespace babel {
 
     class Client {
         public:
-            Client(TCPSystem tcpSys, UDPSystem udpSys);
+            Client(TCPSystem tcpSys, UDPSystem udpSys, AudioStreamSystem audioSys, CodecSystem codecSys);
             ~Client() = default;
 
             void run();
@@ -65,13 +65,14 @@ namespace babel {
             std::vector<std::pair<std::string, std::function<void(const std::vector<std::string>&)>>> _dispatchTable;
 
             TCPSystem _tcpSystem;
-            std::unique_ptr<ITCPCommunication> _tcp;
-
             UDPSystem _udpSystem;
+            AudioStreamSystem _audioSystem;
+            CodecSystem _codecSystem;
+            
+            std::unique_ptr<ITCPCommunication> _tcp;
             std::unique_ptr<IUDPCommunication> _udp;
-
-            std::unique_ptr<ICodec> _codec;
             std::unique_ptr<IAudioStream> _audioStream;
+            std::unique_ptr<ICodec> _codec;
 
             ClientState _state;
             std::string _myUsername;

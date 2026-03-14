@@ -32,6 +32,7 @@ namespace babel {
             
             PaStream* _stream = nullptr;
             
+            std::vector<float> _inputBuffer;
             std::vector<float> _playbackBuffer;
             size_t _readIndex = 0;
             std::mutex _queueMutex;
