@@ -1,0 +1,67 @@
+add_executable(babel_client 
+    src/main.cpp
+    src/Client.cpp
+    src/ClientCommands.cpp
+    src/AudioStream/AudioPortStream.cpp
+    src/AudioStream/MiniAudioStream.cpp
+    src/Codec/OpusCodec.cpp
+    src/TCP/TCPAsio.cpp
+    src/UDP/AsioUDP.cpp
+    include/Client.hpp
+    include/AudioStream/IAudioStream.hpp
+    include/AudioStream/AAudioStream.hpp
+    include/AudioStream/AudioPortStream.hpp
+    include/AudioStream/MiniAudioStream.hpp
+    include/AudioStream/AudioStreamFactory.hpp
+    include/Codec/ICodec.hpp
+    include/Codec/ACodec.hpp
+    include/Codec/OpusCodec.hpp
+    include/TCP/ATCP.hpp
+    include/TCP/ITCP.hpp
+    include/TCP/TCPAsio.hpp
+    include/TCP/TCPFactory.hpp
+    include/UDP/AsioUDP.hpp
+    include/UDP/AUDP.hpp
+    include/UDP/IUDP.hpp
+)
+
+if(TARGET portaudio_static)
+    set(PA_TARGET portaudio_static)
+elseif(TARGET PortAudio::PortAudio)
+    set(PA_TARGET PortAudio::PortAudio)
+else()
+    set(PA_TARGET portaudio)
+endif()
+
+if(UNIX AND NOT APPLE)
+    target_link_libraries(babel_client PRIVATE 
+        Opus::opus 
+        asio::asio 
+        -Wl,--start-group 
+        ${PA_TARGET}
+        miniaudio::miniaudio
+        asound              # ALSA
+        jack                # JACK
+        pthread
+        dl                  # Drivers
+        m                   # Math
+        -Wl,--end-group
+    )
+    target_link_options(babel_client PRIVATE "-Wl,--no-as-needed")
+else()
+    target_link_libraries(babel_client PRIVATE 
+        Opus::opus 
+        asio::asio 
+        ${PA_TARGET}
+        miniaudio::miniaudio
+    )
+endif()
+
+target_include_directories(babel_client PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+if (WIN32)
+    add_definitions(-D_WIN32_WINNT=0x0A00)
+endif()
