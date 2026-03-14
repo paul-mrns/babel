@@ -72,7 +72,8 @@ namespace babel {
             std::unique_ptr<ITCPCommunication> _tcp;
             std::unique_ptr<IUDPCommunication> _udp;
             std::unique_ptr<IAudioStream> _audioStream;
-            std::unique_ptr<ICodec> _codec;
+            std::unique_ptr<ICodec> _encoder;
+            std::unique_ptr<ICodec> _decoder;
 
             ClientState _state;
             std::string _myUsername;
