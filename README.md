@@ -79,6 +79,7 @@ type ```HELP``` for list of available commands and ```EXIT``` to exit babel
 ├── communication
 │   └── TCPProtocol.hpp
 ├── documentation
+│   ├── CONTRIBUTING.md.md
 │   ├── tcp_protocol.md
 │   └── udp_protocol.md
 ├── client
