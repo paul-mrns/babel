@@ -8,7 +8,6 @@
 #ifndef IUDP_HPP_
 #define IUDP_HPP_
 
-#include "../../../communication/UDPProtocol.hpp"
 #include <vector>
 #include <string>
 #include <functional>
