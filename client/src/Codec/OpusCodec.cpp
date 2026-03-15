@@ -23,6 +23,9 @@ OpusCodec::OpusCodec(int sampleRate, int channels, int bitrate)
         throw std::runtime_error("[Opus Codec] Failed to create decoder");
 
     opus_encoder_ctl(_encoder, OPUS_SET_BITRATE(_bitrate));
+    opus_encoder_ctl(_encoder, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE)); // Optimized voice
+    opus_encoder_ctl(_encoder, OPUS_SET_COMPLEXITY(10));            // Optimized CPU
+    opus_encoder_ctl(_encoder, OPUS_SET_INBAND_FEC(1));
     std::cout << "[Opus Codec] has been initialised" << std::endl;
 }
 

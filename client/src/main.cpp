@@ -43,11 +43,10 @@ void runAudioTest(const std::string& audioLibrary)
         if (recordedPackets.empty()) {
             throw std::runtime_error("No audio packets were recorded. Check your microphone.");
         }
-
         std::cout << "[2/2] Replaying through Opus Decoder..." << std::endl;
+        size_t savedPackets = recordedPackets.size();
         testStream->start();
-
-        for (size_t i = 0; i < recordedPackets.size(); ++i) {
+        for (size_t i = 0; i < savedPackets; ++i) {
             const auto& packet = recordedPackets[i];
             if (packet.empty()) continue;
             try {

@@ -8,6 +8,7 @@
 #include "../include/Client.hpp"
 #include <iostream>
 #include <thread>
+#include <cmath>
 
 namespace babel {
 
@@ -178,23 +179,23 @@ void Client::startCall(std::vector<uint8_t> body)
 
 void Client::callProcess()
 {
-    if (!_codec) 
-        _codec = CodecFactory::create(_codecSystem);
+    if (!_encoder) 
+        _encoder = CodecFactory::create(_codecSystem);
+    if (!_decoder) 
+        _decoder = CodecFactory::create(_codecSystem);
     if (!_audioStream)
         _audioStream = AudioStreamFactory::create(_audioSystem);
-    if (!_codec || !_audioStream) {
-        std::cerr << "[Client] Call initialization failed: hardware/codec error." << std::endl;
-        return;
-    }
     _udp->setOnDataReceived([this](const std::vector<uint8_t>& encryptedData) {
-        if (_codec && _audioStream) {
-            AudioBuffer audioPacket = _codec->decode(encryptedData);
-            _audioStream->write(audioPacket);
-        }
+        AudioBuffer audioPacket = _decoder->decode(encryptedData);
+        _audioStream->write(audioPacket);
     });
     _audioStream->setOnReadCallback([this](const AudioBuffer& rawPcm) {
-        if (_codec && _udp) {
-            std::vector<uint8_t> opusPacket = _codec->encode(rawPcm);
+        float sum = 0;
+        for (float s : rawPcm.samples) sum += s * s;
+        float rms = std::sqrt(sum / rawPcm.samples.size());
+
+        if (rms > 0.01f) {
+            std::vector<uint8_t> opusPacket = _encoder->encode(rawPcm);
             _udp->sendAudio(opusPacket);
         }
     });

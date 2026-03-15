@@ -7,6 +7,7 @@
 
 #include "../../include/AudioStream/AudioPortStream.hpp"
 #include <stdexcept>
+#include <algorithm>
 
 namespace babel {
 
@@ -75,10 +76,8 @@ void AudioPortStream::write(const AudioBuffer& data)
         _playbackBuffer.clear();
         _readIndex = 0;
     }
-    float gain = 0.5f;
-    for (float sample : data.samples) {
-        _playbackBuffer.push_back(sample * gain);
-    }
+    for (float sample : data.samples)
+        _playbackBuffer.push_back(std::clamp(sample, -1.0f, 1.0f));
 }
 
 int AudioPortStream::paCallback(const void *input, void *output, unsigned long frameCount, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void *userData)
@@ -89,12 +88,17 @@ int AudioPortStream::paCallback(const void *input, void *output, unsigned long f
 
     // IN
     if (in) {
-        self->_inputBuffer.insert(self->_inputBuffer.end(), in, in + frameCount);
+        self->_inputBuffer.insert(self->_inputBuffer.end(), in, in + (frameCount * DEFAULT_CHANNELS));
 
-        while (self->_inputBuffer.size() >= 480) {
+        while (self->_inputBuffer.size() >= (480 * DEFAULT_CHANNELS)) {
             AudioBuffer buf;
-            buf.samples.assign(self->_inputBuffer.begin(), self->_inputBuffer.begin() + 480);
-            self->_inputBuffer.erase(self->_inputBuffer.begin(), self->_inputBuffer.begin() + 480);
+            buf.sampleRate = DEFAULT_SAMPLE_RATE;
+            buf.channels = DEFAULT_CHANNELS;
+            
+            auto start = self->_inputBuffer.begin();
+            auto end = start + (480 * DEFAULT_CHANNELS);
+            buf.samples.assign(start, end);
+            self->_inputBuffer.erase(start, end);
             
             if (self->_onReadCallback) self->_onReadCallback(buf);
         }
@@ -103,17 +107,12 @@ int AudioPortStream::paCallback(const void *input, void *output, unsigned long f
     // OUT
     if (out) {
         std::lock_guard<std::mutex> lock(self->_queueMutex);
-        for (unsigned long i = 0; i < frameCount; ++i) {
+        for (unsigned long i = 0; i < frameCount * DEFAULT_CHANNELS; ++i) {
             if (self->_readIndex < self->_playbackBuffer.size()) {
                 out[i] = self->_playbackBuffer[self->_readIndex++];
             } else {
-                out[i] = 0.0f; // Silence
+                out[i] = 0.0f;
             }
-        }
-
-        if (self->_readIndex >= self->_playbackBuffer.size()) {
-            self->_playbackBuffer.clear();
-            self->_readIndex = 0;
         }
     }
     return paContinue;
